@@ -29,23 +29,59 @@ GUIDE_POINTER = (
     "个人业务偏好仍保留。与新契约冲突时以 HEALTH_LOG_V2.md 为准。\n\n"
     "---\n\n"
 )
+PRESERVED_GUIDE = (
+    "\n\n---\n\n## 保留的原指南与个人偏好\n\n"
+    "下方原文完整保留。继续遵守其中与上方当前契约不冲突的个人业务偏好；"
+    "旧写入协议、入口或强制 hooks 等约束与上方冲突时，以上方当前契约为准。\n\n"
+)
 
 
 def _upgrade_guides(root: Path) -> None:
     """Retain every original guide byte after an explicit authority pointer."""
-    io.write_text(root / "HEALTH_LOG_V2.md", templates.template("AGENTS.md"))
+    authority = root / "HEALTH_LOG_V2.md"
+    original = authority.read_bytes() if authority.exists() else b""
+    current = templates.template("AGENTS.md").encode("utf-8")
+    if original and original != current:
+        current += PRESERVED_GUIDE.encode("utf-8") + original
+    io.write_bytes(authority, current)
     for name in ("AGENTS.md", "CLAUDE.md"):
         path = root / name
         original = path.read_bytes() if path.exists() else b""
         io.write_bytes(path, GUIDE_POINTER.encode("utf-8") + original)
 
 
-def _inventory(root: Path) -> dict[str, str]:
+def _excluded(root: Path) -> tuple[str, ...]:
+    """Only a real root-level Python environment can be rebuilt instead of backed up."""
+    environment = root / ".venv"
+    try:
+        mode = environment.lstat().st_mode
+    except FileNotFoundError:
+        return ()
+    config = environment / "pyvenv.cfg"
+    if not stat.S_ISDIR(mode):
+        raise Abort(error("迁移预检发现 .venv 不是普通目录", "保留原项目，先检查 .venv"))
+    try:
+        config_mode = config.lstat().st_mode
+    except FileNotFoundError:
+        config_mode = 0
+    if not stat.S_ISREG(config_mode):
+        raise Abort(
+            error(
+                "迁移预检发现 .venv 缺少普通文件 pyvenv.cfg，不能排除备份",
+                "先检查该目录；仅可重建的 Python 运行环境允许排除，不能排除个人数据",
+            )
+        )
+    return (".venv",)
+
+
+def _inventory(root: Path, excluded: tuple[str, ...] = ()) -> dict[str, str]:
     """Reject links/special files instead of copying data from outside the ledger."""
     if root.is_symlink():
         raise Abort(error("迁移目录不能是符号链接", "使用真实持久目录，并保留原账本"))
     result = {}
     for folder, directories, files in os.walk(root, followlinks=False):
+        if Path(folder) == root:
+            directories[:] = [name for name in directories if name not in excluded]
         for name in [*directories, *files]:
             path = Path(folder) / name
             mode = path.lstat().st_mode
@@ -60,9 +96,15 @@ def _inventory(root: Path) -> dict[str, str]:
     return result
 
 
-def _backup(root: Path, inventory: dict[str, str]) -> Path:
+def _backup(root: Path, inventory: dict[str, str], excluded: tuple[str, ...]) -> Path:
+    if _excluded(root) != excluded:
+        raise Abort(error("迁移预检后运行环境发生变化，原账本未迁移", "停止外部写入后重新预检"))
+
+    def ignored(folder: str, _names: list[str]) -> tuple[str, ...]:
+        return excluded if Path(folder) == root else ()
+
     destination = root.with_name(f"{root.name}.backup-{uuid4().hex}")
-    shutil.copytree(root, destination, symlinks=True)
+    shutil.copytree(root, destination, symlinks=True, ignore=ignored)
     destination.chmod(0o700)
     if _inventory(destination) != inventory:
         raise Abort(
@@ -86,25 +128,31 @@ def run(ctx: Context, args: argparse.Namespace) -> Result:
         key = keys.secret(ctx.data_dir)
         transactions.recover(ctx.data_dir, key)
         ctx = replace(ctx, settings=read.read_settings(ctx.data_dir))
-        inventory = _inventory(ctx.data_dir)
         checked = check.run(ctx, argparse.Namespace(read_only=True))
         if checked.status != "ok":
             return checked
         if ctx.settings["format"] == 2:
             state.load(ctx, key)
             return ok("账本已是格式 2，无需迁移。", migrated=False, format=2)
+        excluded = _excluded(ctx.data_dir)
+        inventory = _inventory(ctx.data_dir, excluded)
+        backup_note = "账本和程序文件都会备份，包含隐藏文件、密钥、历史和原指南。"
+        if excluded:
+            backup_note += "仅排除可重建的 .venv 运行环境，恢复后可运行 bootstrap 重建。"
         if not getattr(args, "apply", False):
             return ok(
-                "预检通过。迁移将先完整备份账本，再启用新写入和新指南；旧记录与签名原样保留。",
+                "预检通过。迁移将先备份，再启用新写入和新指南；旧记录与签名原样保留。"
+                + backup_note,
                 migrated=False,
                 from_format=1,
                 to_format=2,
                 guide_updates=list(GUIDES),
+                excluded=list(excluded),
                 next="运行 migrate --apply；备份保存在数据目录同一父目录",
             )
         if (ctx.data_dir / state.FILE).exists():
             return error("格式 1 账本已存在新操作历史，不能覆盖", "请诊断版本标记或从完整备份恢复")
-        backup = _backup(ctx.data_dir, inventory)
+        backup = _backup(ctx.data_dir, inventory, excluded)
         original = (ctx.data_dir / "hl.toml").read_text(encoding="utf-8")
         updated, count = re.subn(r"(?m)^format\s*=\s*1\b", "format = 2", original, count=1)
         if count != 1 or tomllib.loads(updated).get("format") != 2:
@@ -119,6 +167,7 @@ def run(ctx: Context, args: argparse.Namespace) -> Result:
                 "from_format": 1,
                 "to_format": 2,
                 "backup": str(backup),
+                "excluded": list(excluded),
                 "changes": [],
             }
         )
@@ -135,9 +184,10 @@ def run(ctx: Context, args: argparse.Namespace) -> Result:
             if verified.status != "ok":
                 raise Abort(verified)
         return ok(
-            "已迁移为格式 2，旧记录与签名未变；完整备份已保存。",
+            "已迁移为格式 2，旧记录与签名未变；备份已保存。" + backup_note,
             migrated=True,
             format=2,
             backup=str(backup),
+            excluded=list(excluded),
             guide_updates=list(GUIDES),
         )

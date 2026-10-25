@@ -1,11 +1,10 @@
 #!/bin/sh
 # 提交前跑全库校验；不通过就取消这次提交。
-# 找不到 hl 时也不放行（没查过），但要说清楚是 PATH 的问题，不是 hl check 没通过。
-command -v hl >/dev/null 2>&1 || {
-  printf '%s\n' "找不到 hl 命令（PATH 里没有它），提交前没法检查数据，提交已取消。" \
-    "图形界面的 git 客户端常常带不上终端里的 PATH：请在能运行 hl 的终端里提交，或者把 hl 所在的文件夹加进 git 客户端的 PATH。" >&2
+project_root=$(git rev-parse --show-toplevel) || {
+  printf '%s\n' "找不到当前 Git 项目，提交前没法检查数据，提交已取消。" >&2
   exit 1
 }
+cd "$project_root" || exit 1
 # .hl/ 下是签名密钥、用户原话：不进 git。看的是这次要提交的暂存区
 hidden=$(git ls-files -- .hl)
 if [ -n "$hidden" ]; then
@@ -25,8 +24,24 @@ if [ -n "$hidden" ]; then
   fi
   exit 1
 fi
-# 查的是正在提交的这个仓库：终端里的 HL_DATA 可能指着别的数据目录
-out=$(HL_DATA="$(git rev-parse --show-toplevel)" hl check 2>&1) || {
-  printf '%s\n' "hl check 没有通过，提交已取消。运行 hl check 查看每个问题和改法。" "$out" >&2
+# 本地程序存在时只运行它；缺依赖或检查失败不能改用另一套全局引擎。
+check_ledger() {
+  if [ -e "$project_root/scripts/hl.py" ] || [ -L "$project_root/scripts/hl.py" ]; then
+    if [ ! -f "$project_root/scripts/hl.py" ]; then
+      printf '%s\n' "本项目 scripts/hl.py 不是可读程序文件，请先修复本地程序。" >&2
+      return 1
+    fi
+    python3 "$project_root/scripts/hl.py" --data "$project_root" check
+  else
+    # 尚未包含源码的旧独立账本保留原入口；仍绑定当前 Git 根，不采用外部 HL_DATA。
+    command -v hl >/dev/null 2>&1 || {
+      printf '%s\n' "本项目没有 scripts/hl.py，PATH 里也找不到 hl，未执行账本检查。" >&2
+      return 1
+    }
+    HL_DATA="$project_root" hl check
+  fi
+}
+out=$(check_ledger 2>&1) || {
+  printf '%s\n' "账本检查没有通过，提交已取消。请运行本项目的 check 查看问题和改法。" "$out" >&2
   exit 1
 }

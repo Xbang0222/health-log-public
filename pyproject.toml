@@ -40,6 +40,8 @@ only-include = [
     ".gitignore",
     "README.md",
     "AGENTS.md",
+    "CLAUDE.md",
+    "GEMINI.md",
     "CONTRIBUTING.md",
     "LICENSE",
     "docs/user-guide.md",

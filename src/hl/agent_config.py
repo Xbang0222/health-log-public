@@ -19,8 +19,8 @@ CODEX_CONFIG = ".codex/config.toml"
 # Codex 的 matcher 是正则，".*" 也是
 MATCH_ALL = (None, "", "*", ".*")
 REGENERATE = (
-    "多半是旧版 hl init 生成的：把 {file} 删掉（自己加过的设置先挪到 {keep}），"
-    "再运行 hl init 重新生成，然后重启 Agent"
+    "这是可选宿主集成；正常记录无需修复这一项。只有用户选择启用 hooks 时，"
+    "才备份并合并 {file} 与 {keep} 的自定义设置，按 AI 接入指南适配并验证宿主；不要直接删除配置"
 )
 CODEX_TRUST = (
     "Codex 还要信任这个项目、在 Codex 里输入 /hooks 审过并信任这两个钩子才会运行它们"
@@ -132,7 +132,7 @@ def _claude(ctx: Context) -> dict[str, Any]:
     if unreadable:
         return _check(name, False, unreadable)
     if actual is None:
-        return _check(name, False, f"{CLAUDE_SETTINGS} 不存在；运行 hl init 补齐")
+        return _check(name, False, f"未配置可选集成 {CLAUDE_SETTINGS}；本项目正常记录不需要它")
     expected = json.loads(templates.template(CLAUDE_SETTINGS))
     gaps = _hook_gaps(actual, expected)
     permissions = actual.get("permissions") if isinstance(actual.get("permissions"), dict) else {}
@@ -170,7 +170,7 @@ def _codex(ctx: Context) -> dict[str, Any]:
     if unreadable:
         return _check(name, False, unreadable)
     if actual is None:
-        return _check(name, False, f"{CODEX_HOOKS} 不存在；运行 hl init 补齐")
+        return _check(name, False, f"未配置可选集成 {CODEX_HOOKS}；本项目正常记录不需要它")
     expected = json.loads(templates.template(CODEX_HOOKS))
     gaps = [f"{CODEX_HOOKS}：{gap}" for gap in _hook_gaps(actual, expected)]
     try:
@@ -186,7 +186,10 @@ def _codex(ctx: Context) -> dict[str, Any]:
         if features.get(key) is False:
             gaps.append(f"{CODEX_CONFIG} 里 [features] {key} = false，钩子被关掉了")
     if gaps:
-        regenerate = "保留自定义设置，按 README 在此账本项目迁移配置后重启；hl init 不覆盖已有文件"
+        regenerate = (
+            "这是可选宿主集成，正常记录无需修复这一项；只有用户选择启用 hooks 时，"
+            "才保留并合并自定义设置，按 AI 接入指南适配并验证宿主；init 不覆盖已有文件"
+        )
         return _check(name, False, f"{'；'.join(gaps)}。{regenerate}。{CODEX_TRUST}")
     return _check(
         name,

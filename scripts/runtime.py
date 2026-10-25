@@ -56,8 +56,14 @@ def pip_environment() -> dict[str, str]:
 
 
 def venv_usable(root: Path = ROOT) -> tuple[bool, str]:
-    """Check isolation before pip is allowed to install anything."""
+    """Check layout and isolation without importing Python 3.11+ modules."""
     python = venv_python(root)
+    if (root / ".venv").is_symlink():
+        return False, "源码目录的 .venv 是符号链接；请使用该项目独立的本地虚拟环境"
+    if not python.is_file():
+        return False, f"本地解释器不可用：{python}；从其他电脑复制来的 .venv 不能直接迁移"
+    if not (root / ".venv/pyvenv.cfg").is_file():
+        return False, "本地 .venv 缺少 pyvenv.cfg；请移走残缺环境后重新运行 bootstrap.py"
     source = (
         "import os,sys; "
         "assert sys.version_info >= (3,11), '需要 Python 3.11 或更新版本'; "
@@ -154,8 +160,23 @@ def selected_python(root: Path = ROOT) -> Path:
     return candidate if present else Path(sys.executable)
 
 
+def use_local_venv(script: Path, argv: list[str], root: Path = ROOT) -> str | None:
+    """Use an existing safe venv before host-version checks or TOML parsing.
+
+    Older system Python may act as a stdlib-only launcher; it never runs the
+    engine or searches for a different global interpreter. Broken venvs fail.
+    """
+    python = selected_python(root)
+    if python.absolute() == venv_python(root).absolute():
+        usable, why = venv_usable(root)
+        if not usable:
+            return why
+        launch(script, argv, python)
+    return None
+
+
 def launch(script: Path, argv: list[str], python: Path) -> None:
-    # Resolve both sides only to compare; execute the venv path itself so Python
-    # keeps its pyvenv.cfg. Resolving that symlink would escape the venv.
+    # Compare lexical paths, keeping the venv's interpreter symlink intact so
+    # Python uses its pyvenv.cfg instead of escaping to the global interpreter.
     if Path(sys.executable).absolute() != python.absolute():
         os.execv(str(python), [str(python), str(script), *argv])

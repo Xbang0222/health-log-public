@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Portable source entry point; always imports this checkout's engine."""
+"""Portable source entry point; defaults to this project's engine and ledger."""
 
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -22,6 +23,9 @@ def failed(message: str) -> int:
 
 def main() -> int:
     runtime.utf8()
+    problem = runtime.use_local_venv(Path(__file__).resolve(), sys.argv[1:])
+    if problem:
+        return failed(f"本地环境不可用：{problem}")
     problem = runtime.platform_problem()
     if problem:
         return failed(problem)
@@ -31,10 +35,13 @@ def main() -> int:
         # This is an explicit setup instruction, not an implicit network download
         # on a read/query command. bootstrap creates/reuses .venv automatically.
         return failed(f"运行环境尚未就绪：{why}")
-    runtime.launch(Path(__file__).resolve(), sys.argv[1:], python)
     sys.path.insert(0, str(runtime.ROOT / "src"))
     from hl.cli import main as cli_main
 
+    # A source project owns its default ledger, independent of cwd or an inherited
+    # HL_DATA from another project. The CLI still handles explicit --data / init DIR.
+    # Keep argv and cwd unchanged: JSON text and relative input paths are user data.
+    os.environ["HL_DATA"] = str(runtime.ROOT)
     return cli_main(sys.argv[1:])
 
 

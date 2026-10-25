@@ -14,7 +14,9 @@ __pycache__/
 /scripts/builtin_fixture.py
 /scripts/not_same.py
 
-# Personal ledgers and local service configuration do not belong to the source repo.
+# Public-template defaults: keep personal records and host settings out of source commits.
+# A private project may opt into tracking records; see docs/publication.md.
+# Git alone is never a complete backup: .hl contains required private state and keys.
 /.hl/
 /hl.toml
 /log/

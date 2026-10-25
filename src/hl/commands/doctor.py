@@ -1,4 +1,4 @@
-"""hl doctor：安装自检。钩子默认失败放行，所以要确认它们确实在工作。"""
+"""hl doctor：区分核心运行自检与可选的宿主、Git 集成。"""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ RECENT = timedelta(minutes=10)
 
 def _executable() -> dict[str, Any]:
     found = shutil.which("hl")
-    detail = found or "PATH 上找不到 hl；用 uv tool install 安装后，钩子和权限规则才能生效"
+    detail = found or "PATH 上没有全局 hl；本项目使用 python3 scripts/hl.py，无需为此安装全局命令"
     return _check("hl 在 PATH 上", found is not None, detail)
 
 
@@ -83,7 +83,7 @@ def _inbox(ctx: Context) -> dict[str, Any]:
         window = int(RECENT.total_seconds() // 60)
         detail += f"；最近 {window} 分钟内的消息来自 {'、'.join(agents)}"
     if age > RECENT:
-        detail += "；在 Agent 里发一句话再运行 hl doctor，仍然如此就说明钩子没有生效"
+        detail += "；若已选择启用可选 hooks，可在宿主发一句话再自检；未启用时无需处理"
     return _check(name, age <= RECENT, detail)
 
 
@@ -94,7 +94,7 @@ def _git(ctx: Context) -> dict[str, Any]:
     if not ctx.autocommit:
         return _check(name, True, "hl.toml 里关闭了 autocommit")
     if not storage_git_state.is_repo(ctx.data_dir):
-        return _check(name, False, "数据目录不是 git 仓库；运行 hl init 初始化")
+        return _check(name, False, "项目未初始化 Git；若用户需要本地提交历史，再单独配置 Git")
     # 自动提交的提醒叫模型来看这一项：提交不上的几种常见原因，这里要看得出来
     if shutil.which("git") is None:
         return _check(

@@ -47,18 +47,19 @@ CN6 的 `enrich_log.json` 是上游整理说明，不计入食品记录。
 ## 使用现有入口离线重建
 
 持有本目录的原始数据、并已准备 Python 和项目依赖时，在程序根目录执行。
-把示例中的账本路径换成自己的私人持久目录；新账本先初始化，已有账本不需要重新建立：
+本项目就包含个人账本；新项目先初始化，已有账本不需要重新建立：
 
 ```sh
-python3 scripts/hl.py --data /私有持久目录/health-data init
-python3 scripts/hl.py --data /私有持久目录/health-data foods build data/foods/raw/cn6
-python3 scripts/hl.py --data /私有持久目录/health-data foods build data/foods/raw/boohee
-python3 scripts/hl.py --data /私有持久目录/health-data check
+python3 scripts/hl.py init
+python3 scripts/hl.py foods build data/foods/raw/cn6
+python3 scripts/hl.py foods build data/foods/raw/boohee
+python3 scripts/hl.py check
 ```
 
 两个 `foods build` 分别识别成分表目录和薄荷目录，读取本地文件，无需联网下载；
 它们把整理结果安装到所选账本的 `.hl`，同时更新该账本的食品哈希和原始数据路径。
-不必新增运行协议，也不要手工改账本哈希、替换密钥或把整个开发目录复制成个人账本。
+不必新增运行协议，也不要手工改账本哈希或替换密钥。个人项目使用完整程序副本；
+复制时按程序与数据清单取文件，不把开发测试、审查过程或别人的个人记录一起带入。
 原始目录之后应保留在可访问的位置，便于按诊断重建。
 
 使用上述固定来源和转换器时，重建结果应与本目录 `compiled/` 两文件逐字节一致：

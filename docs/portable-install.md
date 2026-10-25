@@ -4,65 +4,89 @@
 原生 Windows 尚不支持文件锁。本地运行验证覆盖 macOS 上的 Python 3.11–3.14；
 Linux 和 WSL 是适用环境，当前维护记录没有实际 Linux/WSL 运行结果，不把未测系统列作通过。
 
-## 最短路径
+## 一份项目，直接开始
 
-把项目源码目录放到电脑上，解压下载的源码也可以，不要求安装 Git。在源码目录运行：
+从公共模板建立自己的完整私有副本，或把完整源码解压到私人持久目录，例如 `~/my-health-log`。
+AI 和你都只需打开这个目录，先读根 `AGENTS.md`。不要求 Git、全局 `hl` 或第二个数据目录。
+不要把 `/tmp`、下载缓存或一次性云工作区当正式项目；云电脑须先确认项目所在磁盘会长期保留。
+
+在项目根目录运行：
 
 ```sh
 python3 scripts/bootstrap.py
-python3 scripts/hl.py --data ~/health-data init
+python3 scripts/hl.py init
 ```
 
-第一条在源码内创建 `.venv`，只安装该项目依赖。后续入口自动选择它，不必激活环境、
-安装 uv、修改 PATH 或安装全局 `hl`。重复运行 bootstrap 只补缺失或版本不满足的依赖；
-不改账本。依赖声明只有 `pyproject.toml` 一份。
+首次还没有项目 `.venv` 时，bootstrap 必须使用 Python 3.11 或更新的解释器。
+如果系统 `python3` 较旧，可改用已安装的 `python3.14 scripts/bootstrap.py`，或指定符合版本要求的解释器完整路径。
+引导脚本不会自动安装或替换系统 Python；引擎的最低要求仍是 Python 3.11。
 
-开发者运行 `python3 scripts/bootstrap.py --dev`，同时安装 `dependency-groups.dev` 中的
-测试、lint 和构建工具；仍只写本地 `.venv`，也可与 `--offline --wheelhouse` 一起使用。
+已有有效项目 `.venv` 时，普通 `python3` 可以只作为启动跳板：入口先验证并切入本地环境，
+再读取依赖配置和启动引擎，不因系统解释器较旧而忽略可用的本地环境。
+损坏的 `.venv` 会明确报错，不回退到系统环境或全局 `hl`；按下文步骤重建运行环境后再继续。
 
-`--data` 必须指向你选定的**持久数据目录**。`~/health-data` 只是示例：云电脑的 home
-也可能随实例销毁，须先确认服务商的持久磁盘/挂载目录，把该目录填进去。引擎无法替你
-证明云盘会保留。不要把 `/tmp`、下载缓存或一次性 Agent 工作区当正式账本。
+bootstrap 在本项目创建 `.venv`，只安装依赖，不生成账本、不下载食品、不设置 Git。
+后续入口自动选择它，不必激活环境、安装 uv 或修改 PATH；重复引导只补缺失或版本不满足的依赖。
+依赖声明只有 `pyproject.toml` 一份。`init` 才在**同一个项目根目录**创建 `hl.toml`、账本结构和 `.hl`，
+格式 2 初始化还会补齐缺少的 `HEALTH_LOG_V2.md`，已有正文和根个人规则不覆盖。
+已有有效格式 2 项目重复 init 时须先通过校验，再补缺少的指南；不能用它代替损坏恢复、规则更新或旧格式迁移。
 
-源码与账本可以分开；从任意目录都可使用源码入口的绝对路径：
+已有 `hl.toml` 的项目先读取实际规则、配置和已有记录，检查后接着用；不为接手新聊天新建账本。
+根 `AGENTS.md` 是日常入口；接着读本项目 `HEALTH_LOG_V2.md`，尚未生成时按根指南读随程序的操作模板。
+已有格式 1 按[迁移说明](migration.md)预检和备份后升级。
+
+## 准备或校验食品库
+
+先检查本项目现有食品库；已经齐全并通过校验时直接复用，不因换 AI 或升级程序重新下载或更换版本。
+自有概念、菜谱、量词和参考表在 `src/hl/data`。完整第三方快照的来源与校验清单见
+[项目数据](../data/foods/README.md)；公开模板只带说明和清单，不带完整第三方数据。
+
+缺食品库且本项目已有完整 `data/foods/raw/cn6`、`data/foods/raw/boohee` 时，优先离线构建：
 
 ```sh
-python3 /完整路径/health-log/scripts/hl.py --data /持久路径/health-data today
+python3 scripts/hl.py foods build data/foods/raw/cn6
+python3 scripts/hl.py foods build data/foods/raw/boohee
 ```
 
-`--data` 优先于 `HL_DATA`，没有显式指定时引擎仍可从当前目录向上查找 `hl.toml`。
-选择账本不会替 Agent 加载规则：让 Agent 优先读取账本 `HEALTH_LOG_V2.md`（如果存在），
-否则读取账本 `AGENTS.md`，再使用上述入口。详情见[AI 接入指南](agent-integration.md)。
-正常结构化写入不依赖 Codex/Claude hooks、宿主信任注册或全局配置；可选 hooks 用于
-采集宿主原话等增强能力，未启用时来源只能称为 Agent 提交。
+现有转换器会将结果写入本项目 `.hl` 并维护食品校验值。不能把 `compiled/*.json` 当原始目录，
+也不要手工替换哈希或用重建覆盖尚未查清的损坏。
 
-## 准备食品数据
-
-项目的概念、菜谱、量词和参考表在 `src/hl/data`。完整营养快照的条数、来源和校验清单见
-[项目数据](../data/foods/README.md)；完整第三方文件保留在私有工程，不随公开 MIT 源码分发。
-
-**程序目录带有 `data/foods/raw/cn6` 和 `data/foods/raw/boohee` 时**，直接从仓库数据离线构建：
+没有可用的完整本地原始数据时，按固定来源和版本下载：
 
 ```sh
-python3 scripts/hl.py --data ~/health-data foods build data/foods/raw/cn6
-python3 scripts/hl.py --data ~/health-data foods build data/foods/raw/boohee
-python3 scripts/hl.py --data ~/health-data doctor
-python3 scripts/hl.py --data ~/health-data check
+python3 scripts/hl.py foods fetch
 ```
 
-这会通过引擎现有转换器生成账本食品副本，保留未知值和来源，并写入校验值。
-不能把 `compiled/*.json` 当成原始数据交给 `foods build`，也不要绕过引擎直接修改账本配置或哈希。
-
-**公开源码没有完整快照时**，按已固定的来源和版本下载一次：
+准备完成后运行：
 
 ```sh
-python3 scripts/hl.py --data ~/health-data foods fetch
-python3 scripts/hl.py --data ~/health-data doctor
-python3 scripts/hl.py --data ~/health-data check
+python3 scripts/hl.py check
+python3 scripts/hl.py doctor
+python3 scripts/hl.py recent --limit 20
 ```
 
-下载或构建后，依赖和食品数据齐全的本地引擎可离线运行。已有账本已经装好食品库时先校验，
-不因程序升级重新构建或更换食品版本。云端 AI 对话仍需要对应服务的网络连接。
+检查通过后再开始记账。依赖和食品数据齐全的本地引擎可离线运行，云端 AI 对话仍需要对应服务的网络。
+普通结构化写入不依赖 hooks 或宿主信任注册；未启用可选原话采集时，来源只能称为 Agent 提交。
+
+## 项目入口与外部账本兼容
+
+`python3 scripts/hl.py` 始终运行它所在项目的源码，默认数据目录是这个**脚本所属的项目根目录**，
+忽略继承的 `HL_DATA`，也不从当前工作目录向上另找账本。因此从其他目录运行绝对路径也指向同一项目：
+
+```sh
+python3 /持久目录/my-health-log/scripts/hl.py today
+```
+
+已有分离账本或维护工具仍可显式指定外部目录：
+
+```sh
+python3 scripts/hl.py --data /另一个私人账本 check
+python3 scripts/hl.py init /新的外部私人账本
+```
+
+这属于兼容入口，不是普通用户开始使用的必要步骤。选择外部目录不会替宿主加载其规则，
+使用前须读取那个账本的实际个人指南。裸安装的 `hl` 保留原有 `HL_DATA`/路径查找行为，
+本项目的一目录默认仅由 `scripts/hl.py` 提供；不要混用两个入口猜测写入位置。
 
 ## 没有 Git、网络或食物缓存
 
@@ -102,23 +126,35 @@ python3 scripts/bootstrap.py --offline --wheelhouse /完整路径/health-log-whe
 不能把“bootstrap 离线成功”当成“离线构建一定可用”。通常使用源码入口即可，无需构建包。
 常规联网安装可复用 pip 缓存，但仍可能访问包索引；缓存不是保证离线安装成功的 wheelhouse。
 
-## 搬家与备份
+## 换电脑与完整备份
 
-1. 停止写入，整体复制账本目录，包括所有隐藏文件。尤其保留 `.hl/secret`、审计记录、
-   manifest 和缓存；只复制 `log/` 或 Git 仓库是不完整的。
-2. 把源码复制或重新解压到新电脑。**不迁移源码的 `.venv`**，它包含旧机器路径和平台
-   二进制；在新电脑重新运行 bootstrap。
-3. 用新电脑的持久路径运行 `--data <账本> check` 和 `doctor`，先确认完整性再记账。
-   缺密钥、损坏签名或不支持的版本不能靠重新 `init`、重签或删除历史解决，应从备份恢复。
-4. 旧版本账本按本次迁移说明先预检、备份，再执行显式迁移；引导脚本不迁移健康数据。
+1. 停止写入并运行 `python3 scripts/hl.py check`。整体复制这个私有项目，包括程序、个人规则、
+   配置、记录和所有隐藏文件，尤其是 `.hl/secret`、收据、manifest 与缓存。只复制 `log/` 或 Git 跟踪文件不够。
+   公共模板默认忽略个人数据，私有仓库也不会自动跟踪；用户按[发布说明](publication.md#保存自己的项目)
+   选择自己的 Git 跟踪方式后，仍需完整备份 `.hl` 等未跟踪内容。
+2. `.venv` 可以不搬；它带有旧机器路径和平台文件，在新电脑的项目根目录重新运行 bootstrap。
+3. 运行 `python3 scripts/hl.py check`、`doctor` 和 `recent`，核对成功后再继续。新 AI 仍只需打开这一个目录。
+4. 缺密钥、坏签名或不支持的格式不能靠重新 init、重签或删除历史解决，按[恢复说明](migration.md)处理。
 
-已复制坏 `.venv` 时，入口会报运行环境不可用，避免偷偷使用全局旧 `hl`。确认路径是
-**源码目录里的 `.venv`** 后，把它移走并重跑 bootstrap。账本中的 **`.hl` 不能删除**。
+已复制坏 `.venv` 时，先确认路径确是本项目的运行环境，再将它移走并重建。**`.hl` 不能删除**。
+
+## 只更新程序，保留个人内容
+
+升级前完整备份。按新版本 `pyproject.toml` 的公开程序允许清单更新 `src/hl`、`scripts`、文档、
+依赖声明和可分发运行资源，再运行 bootstrap、check 和 doctor；不把新版目录整体覆盖或镜像删除到自己的项目。
+
+必须保留 `hl.toml`、`log/`、`plan.yaml`、`defaults.yaml`、个人 `foods/`、`.hl/` 和全部个人规则。
+根 `AGENTS.md`、已有 `HEALTH_LOG_V2.md`、`CLAUDE.md` 及其他个人指南先比较并合并适用规则，
+不能用公共模板直接覆盖。`data/foods/raw`、`compiled` 的私有完整数据也保留，不因公开新版未带它们而删除。
+格式迁移是另一步显式操作；bootstrap 和程序文件更新都不会代替它。
+
+开发环境可运行 `python3 scripts/bootstrap.py --dev` 安装本项目开发依赖，仍只使用 `.venv`。
+公开副本不包含私有测试套件，不能把缺少测试文件称为业务回归通过。
 
 ## 入口的边界
 
 - `scripts/runtime.py` 唯一负责本地解释器和依赖检查；两个脚本不各自维护一套选择策略。
 - `scripts/bootstrap.py` 只准备运行环境，不安装全局命令、不设置 Git、不下载食物、不写账本。
-- `scripts/hl.py` 只分发到当前源码 `src/hl`，不去寻找全局 `hl`；缺依赖返回 JSON 错误，
+- `scripts/hl.py` 默认绑定本项目根账本，只分发到当前源码 `src/hl`，不寻找全局 `hl`；缺依赖返回 JSON 错误，
   明确要求运行 bootstrap。读取命令不会突然联网安装软件。
 - 业务写入、校验、日期、事务和迁移仍由引擎负责。脚本不实现第二套业务规则。

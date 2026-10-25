@@ -116,6 +116,7 @@ def run(
                 ".hl/recorded.json",
                 "AGENTS.md",
                 "CLAUDE.md",
+                "HEALTH_LOG_V2.md",
             ],
         ):
             root = resources.files("hl").joinpath("data", "templates")
@@ -134,6 +135,10 @@ def run(
                 from hl.configuration.values import Context
                 from hl.intents import state
 
+                guide = data_dir / "HEALTH_LOG_V2.md"
+                if not guide.exists():
+                    storage_io.write_text(guide, template("AGENTS.md"))
+                    created.append("HEALTH_LOG_V2.md")
                 if not (data_dir / state.FILE).exists():
                     if signed:
                         return error("操作历史缺失，不能用 init 重建；请恢复完整备份")

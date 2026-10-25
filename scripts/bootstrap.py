@@ -17,6 +17,7 @@ def note(text: str) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     runtime.utf8()
+    argv = sys.argv[1:] if argv is None else argv
     parser = argparse.ArgumentParser(
         description="安装 health-log 本地运行环境，不改账本或全局 Python"
     )
@@ -25,20 +26,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--wheelhouse", type=Path, help="离线依赖 wheel 所在目录")
     parser.add_argument("--dev", action="store_true", help="同时安装测试、lint 和构建依赖")
     args = parser.parse_args(argv)
-    problem = runtime.platform_problem()
-    if problem:
-        note(problem)
-        return 1
     if args.offline and args.index_url:
         parser.error("--offline 与 --index-url 不能同时使用")
     if args.wheelhouse and not args.wheelhouse.is_dir():
         parser.error("--wheelhouse 必须是现有目录")
+    problem = runtime.use_local_venv(Path(__file__).resolve(), argv)
+    if problem:
+        note(f"本地环境不可用，未安装任何依赖：{problem}")
+        note("移走本项目残缺的 .venv 后重新运行 bootstrap.py；不要移走账本的 .hl。")
+        return 1
+    problem = runtime.platform_problem()
+    if problem:
+        note(problem)
+        note("请用 Python 3.11+ 的解释器路径运行 scripts/bootstrap.py；不会自动寻找或安装 Python。")
+        return 1
     root = runtime.ROOT
     python = runtime.venv_python(root)
-    if (root / ".venv").is_symlink():
-        note("源码目录的 .venv 是符号链接；为避免改动其他环境，未安装任何依赖。")
-        note("移走该链接后重新运行 bootstrap.py，账本目录不受影响。")
-        return 1
     if not (root / ".venv").exists():
         note(f"创建本地运行环境：{root / '.venv'}")
         result = subprocess.run(
@@ -50,13 +53,6 @@ def main(argv: list[str] | None = None) -> int:
             note("创建失败，尚未安装。Linux 可能需要系统的 python3-venv 包。")
             note("确认 .venv 仅为本项目运行环境后，可移走它再重试；账本目录不受影响。")
             return 1
-    if not python.is_file():
-        note(f"本地环境不可用：{python}。从其他电脑复制来的 .venv 不能直接迁移。")
-        note("移走本项目的 .venv 后重新运行 bootstrap.py；不要移走账本的 .hl。")
-        return 1
-    if not (root / ".venv/pyvenv.cfg").is_file():
-        note("本地 .venv 缺少 pyvenv.cfg；移走残缺环境后重新运行 bootstrap.py。")
-        return 1
     usable, why = runtime.venv_usable(root)
     if not usable:
         note(f"本地环境不可用，未安装任何依赖：{why}")
