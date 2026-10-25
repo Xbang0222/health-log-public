@@ -1,0 +1,196 @@
+# 参考范围表：hl ref 只读这份、原样展示，不写任何文件，也不写进计划（设计说明第 7.5 节）。
+# 计划由用户自己定；这里的数只供查看。
+#
+# sources：出处。kind 只能是 官方文件、文献、行业惯例。
+# items：每条一个范围。
+#   low、high：范围的两头，只有一个数的两头写一样。只有上限的不写 low，写 upper（≤ 或 <）。
+#   unit：g/d 克/天，mg/d 毫克/天，%E 占总热量的百分比，g/kg/d 克/公斤体重/天，
+#         g/kg_lbm/d 克/公斤去脂体重/天，%bw/wk 体重的百分比/周。
+#         hl ref --kg 只换算 g/kg/d 和 %bw/wk 两种，去脂体重引擎不知道，不换算。
+#   checked：已核对原文（打开过原文、亲眼看到这个数）或 未核对原文（只见于转述）。
+#   where：在原文哪里。
+# 公开出处见下方 sources；每项 checked 与 where 保留核对状态和原文位置。
+
+sources:
+  dris2023:
+    name: 中国居民膳食营养素参考摄入量（2023版）
+    by: 中国营养学会
+    url: https://www.cnsoc.org/drpostand/
+    kind: 官方文件
+  dg2022:
+    name: 中国居民膳食指南（2022）
+    by: 中国营养学会
+    url: http://dg.cnsoc.org/article/04/ApX3_ozGTmSoqQaFFh5z_Q.html
+    kind: 官方文件
+  who_sodium:
+    name: Sodium reduction（事实清单）
+    by: 世界卫生组织
+    url: https://www.who.int/news-room/fact-sheets/detail/salt-reduction
+    kind: 官方文件
+  issn2017:
+    name: "International Society of Sports Nutrition Position Stand: protein and exercise"
+    by: Jäger R 等，J Int Soc Sports Nutr 2017;14:20
+    url: https://doi.org/10.1186/s12970-017-0177-8
+    kind: 文献
+  helms2014:
+    name: "Evidence-based recommendations for natural bodybuilding contest preparation: nutrition and supplementation"
+    by: Helms ER、Aragon AA、Fitschen PJ，J Int Soc Sports Nutr 2014;11:20
+    url: https://doi.org/10.1186/1550-2783-11-20
+    kind: 文献
+
+items:
+  - id: dris-protein-men
+    topic: 蛋白质
+    what: 蛋白质推荐摄入量（RNI）
+    who: 18~49 岁成年男性
+    low: 65
+    high: 65
+    unit: g/d
+    source: dris2023
+    checked: 已核对原文
+    where: 表 9（18~29 岁男性）、表 11（30~49 岁男性）“蛋白质（g/d）”一行的 RNI 列
+    note: 一般成年人的推荐量，不是专为健身或减脂定的；同一行的平均需要量（EAR）是 60
+
+  - id: dris-protein-women
+    topic: 蛋白质
+    what: 蛋白质推荐摄入量（RNI）
+    who: 18~49 岁成年女性
+    low: 55
+    high: 55
+    unit: g/d
+    source: dris2023
+    checked: 已核对原文
+    where: 表 10（18~29 岁女性）、表 12（30~49 岁女性）“蛋白质（g/d）”一行的 RNI 列
+    note: 一般成年人的推荐量，不是专为健身或减脂定的；同一行的平均需要量（EAR）是 50
+
+  - id: dris-fat-amdr
+    topic: 脂肪
+    what: 总脂肪可接受范围（AMDR）
+    who: 18~49 岁成年人
+    low: 20
+    high: 30
+    unit: "%E"
+    source: dris2023
+    checked: 已核对原文
+    where: 表 9 至表 12“总脂肪（%E）”一行的 AMDR 列
+    note: 按占总热量的比例算；同表饱和脂肪酸是 <10%
+
+  - id: dris-carb-amdr
+    topic: 碳水
+    what: 总碳水化合物可接受范围（AMDR）
+    who: 18~49 岁成年人
+    low: 50
+    high: 65
+    unit: "%E"
+    source: dris2023
+    checked: 已核对原文
+    where: 表 9 至表 12“总碳水化合物（%E）”一行的 AMDR 列
+    note: 按占总热量的比例算；同表添加糖是 <10%
+
+  - id: dris-fiber-ai
+    topic: 纤维
+    what: 膳食纤维适宜摄入量（AI）
+    who: 18~49 岁成年人
+    low: 25
+    high: 30
+    unit: g/d
+    source: dris2023
+    checked: 已核对原文
+    where: 表 9 至表 12“膳食纤维（g/d）”一行，RNI 列写 25~30（AI）
+    note: 这是总膳食纤维；hl 用的成分表只有不溶性膳食纤维，记出来的纤维会比总膳食纤维少，和这个数比会显得偏低
+
+  - id: dris-sodium-pi
+    topic: 钠
+    what: 钠的预防慢性病建议摄入量（PI-NCD）
+    who: 18~49 岁成年人
+    high: 2000
+    upper: ≤
+    unit: mg/d
+    source: dris2023
+    checked: 已核对原文
+    where: 表 9 至表 12“钠（mg/d）”一行的 PI 列
+    note: 同一行的适宜摄入量（AI）是 1500
+
+  - id: dg-salt
+    topic: 盐
+    what: 食盐
+    who: 成年人
+    high: 5
+    upper: ≤
+    unit: g/d
+    source: dg2022
+    checked: 已核对原文
+    where: 准则五“少盐少油，控糖限酒”核心推荐第一条：成年人每天摄入食盐不超过 5 克
+    note: 说的是食盐的克数，不是钠；hl 记的是钠（毫克）
+
+  - id: dg-oil
+    topic: 烹调油
+    what: 烹调油
+    who: 成年人
+    low: 25
+    high: 30
+    unit: g/d
+    source: dg2022
+    checked: 已核对原文
+    where: 准则五“少盐少油，控糖限酒”核心推荐第一条：烹调油每天 25~30 克
+    note: 说的是做菜用的油，不是全天的脂肪总量
+
+  - id: who-sodium
+    topic: 钠
+    what: 钠
+    who: 成年人
+    high: 2000
+    upper: <
+    unit: mg/d
+    source: who_sodium
+    checked: 已核对原文
+    where: “Recommendations for reducing sodium”一节：成人每天钠少于 2000 毫克（相当于盐少于 5 克）
+    note: 核对的是世卫组织网站上的事实清单（2026-05-11）；2012 年的指南原文没有打开
+
+  - id: issn-protein
+    topic: 蛋白质
+    what: 运动人群每天的蛋白质
+    who: 多数经常运动的人
+    low: 1.4
+    high: 2.0
+    unit: g/kg/d
+    source: issn2017
+    checked: 已核对原文
+    where: 摘要“Position statement”第 2 条：增肌和维持肌肉，每天 1.4~2.0 克/公斤体重
+    note: 按体重算
+
+  - id: issn-protein-deficit
+    topic: 蛋白质
+    what: 热量不足期间的蛋白质
+    who: 有抗阻训练基础、在吃热量缺口的人
+    low: 2.3
+    high: 3.1
+    unit: g/kg/d
+    source: issn2017
+    checked: 已核对原文
+    where: 摘要“Position statement”第 3 条：热量不足期间为尽量保住瘦体重，可能需要 2.3~3.1 克/公斤/天
+    note: 按体重算；原文说的是“可能需要”。Helms 2014 也写 2.3~3.1，但那条按去脂体重算，不是一回事
+
+  - id: helms-protein-lbm
+    topic: 蛋白质
+    what: 备赛减脂期的蛋白质
+    who: 备赛的自然健美运动员
+    low: 2.3
+    high: 3.1
+    unit: g/kg_lbm/d
+    source: helms2014
+    checked: 已核对原文
+    where: 摘要，和正文“Protein”一节：每天 2.3~3.1 克/公斤去脂体重
+    note: 按去脂体重算，不是体重；引擎不知道你的去脂体重，所以不换算成克
+
+  - id: helms-loss-rate
+    topic: 减重速度
+    what: 每周体重下降
+    who: 备赛的自然健美运动员
+    low: 0.5
+    high: 1
+    unit: "%bw/wk"
+    source: helms2014
+    checked: 已核对原文
+    where: 摘要，和正文“Caloric intake for competition”一节：热量定在每周体重下降约 0.5%~1% 的水平，为了尽量保住肌肉
+    note: 按体重的百分比算

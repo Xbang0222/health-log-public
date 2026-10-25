@@ -1,0 +1,27 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+/dist/
+/build/
+*.egg-info/
+.DS_Store
+
+# Private development material (already tracked private history stays private).
+/tests/
+/docs/aegis/
+/scripts/builtin_fixture.py
+/scripts/not_same.py
+
+# Personal ledgers and local service configuration do not belong to the source repo.
+/.hl/
+/hl.toml
+/log/
+/plan.yaml
+/defaults.yaml
+/foods/
+.env
+.env.*
+/.claude/
+/.codex/

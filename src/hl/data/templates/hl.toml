@@ -1,0 +1,17 @@
+format = 2
+
+[foods]
+source = "Sanotsu/china-food-composition-data"
+commit = "d15675c27582748307023b7ee7aca2a63fc52756"
+dataset = "json_data_v3_20260825_qwen38max_kimi_k3_fixed_en"
+raw_sha256 = "e806157016687337ead43dd05151548423f20e6b2de9d2451daae8bb5962f0e2"    # hl foods fetch 核对下载的原始数据：各文件“sha256  文件名”按文件名排好、一行一个，整个的 sha256
+sha256 = ""          # hl foods build 写入
+raw_dir = ""         # hl foods build 写入：构建用的原始数据目录，成分表副本坏了照它重新构建
+boohee_source = "jarheadjoe/scrapy_boohee"
+boohee_commit = "a64c26df9aba061b0983f4d19fab8945c532ba6b"
+boohee_raw_sha256 = "385bd262f46586913eeb264c3d92849f243fcb0ecc6410f02e6a5f30f22328a8"    # 同 raw_sha256，薄荷库的 all.csv 和 food_detail_backup.json
+boohee_sha256 = ""   # hl foods build、hl foods fetch 写入：薄荷库副本的哈希，空的表示没装
+boohee_raw_dir = ""  # 同上：整理薄荷库用的原始数据目录
+
+[git]
+autocommit = false    # 每次写入成功后自动本地提交；提交不上只在输出里加提醒（warnings；说给用户的那部分也接在 tell_user 后面），不影响结果

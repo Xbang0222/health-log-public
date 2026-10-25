@@ -1,0 +1,18 @@
+# "接下来可以吃什么"的候选食物和上限。
+# 数据目录里放一份同名的 suggest.yaml 可以覆盖这里的内容：只写想改的键，没写的照旧用这里的。
+# 写错了（键名、形状不对，或候选不在概念表里）hl today 和 hl check 会指出是哪一处。
+# concept、variant 对应概念表里的概念和品种；state: 熟 表示按熟重给建议。
+
+protein_cap: 40        # 每餐蛋白质上限（克）
+staple_cap: 250        # 每餐主食上限（克，按米饭）
+vegetable_reserve: 50  # 预留给蔬菜的热量（千卡）
+
+# 蛋白质来源：按顺序取前两种放得进剩余额度的，给用户二选一
+proteins:
+  - {label: 鸡胸肉（熟重）, concept: 鸡胸肉, variant: 鸡胸, state: 熟}
+  - {label: 牛腱子（熟重）, concept: 牛肉, variant: 牛腱子, state: 熟}
+  - {label: 北豆腐, concept: 豆腐, variant: 北豆腐}
+
+# 主食：只用第一种
+staples:
+  - {label: 米饭, concept: 米饭, variant: 蒸米饭}

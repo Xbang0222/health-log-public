@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "hl food add 的输入（增补第 8.6 节）",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["said", "name"],
+  "x-hint": "两种写法二选一：{said, name, per, nutrition, basis, url}（包装标签、整份的营养），或 {said, name, unit, estimate}（拆成原料）；另外只允许 answers、confirm",
+  "properties": {
+    "said": {
+      "type": "string",
+      "minLength": 1,
+      "x-hint": "用户说这样食物的原话，一字不改地抄进来；名字和每个数字都要出自这句话"
+    },
+    "answers": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1, "x-hint": "每条都是用户回答的原话，一字不改"},
+      "x-hint": "写成字符串数组：引擎请用户确认之后用户回答的原话"
+    },
+    "confirm": {
+      "type": "boolean",
+      "x-hint": "只能是 true 或 false；引擎请用户确认、用户确认了才填 true"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "x-hint": "食物的名字，照抄用户话里的叫法，不带数量和量词"
+    },
+    "per": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-hint": "nutrition 是多少的营养：{\"g\": 100}、{\"ml\": 100} 或 {\"n\": 1, \"unit\": \"份\"}，照包装标签写",
+      "properties": {
+        "g": {"type": "number", "exclusiveMinimum": 0, "x-hint": "每多少克，写数字"},
+        "ml": {"type": "number", "exclusiveMinimum": 0, "x-hint": "每多少毫升，写数字"},
+        "n": {"type": "number", "exclusiveMinimum": 0, "x-hint": "每几个量词，写数字"},
+        "unit": {"type": "string", "minLength": 1, "x-hint": "量词，例如 \"份\"、\"包\"、\"个\""}
+      }
+    },
+    "nutrition": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-hint": "per 这个量的营养：kcal（或 kj，标签上是千焦就填 kj）必填；protein、fat、carb、fiber 是克，sodium 是毫克，都写数字；用户没说的不要填",
+      "properties": {
+        "kcal": {"type": "number"},
+        "kj": {"type": "number"},
+        "protein": {"type": "number"},
+        "fat": {"type": "number"},
+        "carb": {"type": "number"},
+        "fiber": {"type": "number"},
+        "sodium": {"type": "number"}
+      }
+    },
+    "unit": {
+      "type": "string",
+      "minLength": 1,
+      "x-hint": "estimate 拆的是多少：量词（\"碗\"、\"份\"）是一个这个量词的；\"g\"、\"ml\" 是每 100 克、每 100 毫升的"
+    },
+    "estimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["basis"],
+      "x-hint": "同 hl add 的 estimate：parts 和 nutrition 二选一，basis 必填；只允许 parts、nutrition、basis、url 这几个字段",
+      "properties": {
+        "parts": {
+          "type": "array",
+          "minItems": 1,
+          "x-hint": "写成数组，至少一项：[{\"food\": \"青椒\", \"g\": 150}]；每项是一样原料和它的可食部生重克数",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["food", "g"],
+            "x-hint": "每项只允许 food、g、variant：{\"food\": \"青椒\", \"g\": 150}",
+            "properties": {
+              "food": {"type": "string", "minLength": 1, "x-hint": "原料名，或照抄 hl food search 给的 ref"},
+              "g": {"type": "number", "x-hint": "这样原料的可食部生重，单位是克，写数字"},
+              "variant": {"type": "string", "minLength": 1, "x-hint": "原料的品种；不知道就不要填"}
+            }
+          }
+        },
+        "nutrition": {
+          "type": "object",
+          "additionalProperties": false,
+          "x-hint": "unit 这个量整份的营养：kcal（或 kj）必填；protein、fat、carb、fiber 是克，sodium 是毫克，都写数字",
+          "properties": {
+            "kcal": {"type": "number"},
+            "kj": {"type": "number"},
+            "protein": {"type": "number"},
+            "fat": {"type": "number"},
+            "carb": {"type": "number"},
+            "fiber": {"type": "number"},
+            "sodium": {"type": "number"}
+          }
+        },
+        "basis": {"type": "string", "minLength": 1, "x-hint": "必填：按什么估的"},
+        "url": {"type": "string", "minLength": 1, "x-hint": "上网查到的写出处网址；没查就不要填"}
+      }
+    },
+    "basis": {
+      "type": "string",
+      "minLength": 1,
+      "x-hint": "按什么来的：包装标签、官网营养信息、估的依据"
+    },
+    "url": {
+      "type": "string",
+      "minLength": 1,
+      "x-hint": "上网查到的写出处网址；没查就不要填"
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "数据目录里 suggest.yaml 的结构",
+  "type": "object",
+  "additionalProperties": false,
+  "x-hint": "写成“键: 值”，只能用 protein_cap、staple_cap、vegetable_reserve、proteins、staples 这几个键；只写想改的，没写的用引擎自带的",
+  "properties": {
+    "protein_cap": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "x-hint": "每餐蛋白质上限（克）：写一个大于 0 的数，例如 protein_cap: 40"
+    },
+    "staple_cap": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "x-hint": "每餐主食上限（克）：写一个大于 0 的数，例如 staple_cap: 250"
+    },
+    "vegetable_reserve": {
+      "type": "number",
+      "minimum": 0,
+      "x-hint": "预留给蔬菜的热量（千卡）：写一个不小于 0 的数，例如 vegetable_reserve: 50"
+    },
+    "proteins": {
+      "type": "array",
+      "minItems": 1,
+      "x-hint": "写成列表，至少一项，每项形如 {label: 鸡胸肉（熟重）, concept: 鸡胸肉, variant: 鸡胸, state: 熟}",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "concept", "variant"],
+        "x-hint": "每项写成 {label: 显示的名字, concept: 概念名, variant: 品种名}，三样都要有；按熟重给建议的再加 state: 熟",
+        "properties": {
+          "label": {"type": "string", "minLength": 1},
+          "concept": {"type": "string", "minLength": 1},
+          "variant": {"type": "string", "minLength": 1},
+          "state": {"const": "熟", "x-hint": "state 只能写 熟（按熟重给建议）；按生重给建议就不要写这个键"}
+        }
+      }
+    },
+    "staples": {
+      "type": "array",
+      "minItems": 1,
+      "x-hint": "写成列表，至少一项（只用第一项），每项形如 {label: 米饭, concept: 米饭, variant: 蒸米饭}",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "concept", "variant"],
+        "x-hint": "每项写成 {label: 显示的名字, concept: 概念名, variant: 品种名}，三样都要有；按熟重给建议的再加 state: 熟",
+        "properties": {
+          "label": {"type": "string", "minLength": 1},
+          "concept": {"type": "string", "minLength": 1},
+          "variant": {"type": "string", "minLength": 1},
+          "state": {"const": "熟", "x-hint": "state 只能写 熟（按熟重给建议）；按生重给建议就不要写这个键"}
+        }
+      }
+    }
+  }
+}

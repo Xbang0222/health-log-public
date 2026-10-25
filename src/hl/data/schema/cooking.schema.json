@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "数据目录里 cooking.yaml 的结构（增补第 10 节：做法估算的油盐比例）",
+  "type": "object",
+  "additionalProperties": false,
+  "x-hint": "写成“键: 值”，只能用 素菜油、肉蛋水产油、盐 这三个键，值是每 100 克生重加几克；只写想改的，没写的用引擎自带的（素菜油 4、肉蛋水产油 8、盐 0.8）",
+  "properties": {
+    "素菜油": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 30,
+      "x-hint": "素菜每 100 克生重加几克油：写一个 0 到 30 的数，例如 素菜油: 3"
+    },
+    "肉蛋水产油": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 30,
+      "x-hint": "肉、蛋、水产每 100 克生重加几克油：写一个 0 到 30 的数，例如 肉蛋水产油: 6"
+    },
+    "盐": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5,
+      "x-hint": "每 100 克生重加几克盐：写一个 0 到 5 的数，例如 盐: 0.6"
+    }
+  }
+}

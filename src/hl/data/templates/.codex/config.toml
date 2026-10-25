@@ -1,0 +1,19 @@
+# Codex CLI 0.162.0-alpha.2 实测。只在信任这个账本项目后加载；hooks 另用 /hooks 审核信任。
+# 每次 hl 写入后需要本地 Git 提交；默认 workspace-write 把 .git 设成只读。
+# 本项目只为 .git 增加写权限，.codex/.agents 保持只读，命令网络关闭。
+# 不要另传 --sandbox/-s 或设置旧 sandbox_mode：旧设置会覆盖这个命名 profile。
+default_permissions = "health-log"
+
+[permissions.health-log]
+extends = ":workspace"
+
+[permissions.health-log.filesystem.":workspace_roots"]
+".git" = "write"
+".codex" = "read"
+".agents" = "read"
+
+[permissions.health-log.network]
+enabled = false
+
+[features]
+hooks = true

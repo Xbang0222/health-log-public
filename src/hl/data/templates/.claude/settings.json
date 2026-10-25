@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(hl *)"
+    ],
+    "deny": [
+      "Bash(hl hook *)",
+      "Read(/{protected})",
+      "Edit(/{protected})",
+      "{prompt_tools}"
+    ]
+  },
+  "crossSessionInbound": "refuse",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {"type": "command", "command": "hl hook user-prompt --agent claude"}
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {"type": "command", "command": "hl hook pre-tool --agent claude"}
+        ]
+      }
+    ]
+  }
+}
