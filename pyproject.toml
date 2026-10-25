@@ -30,14 +30,15 @@ packages = ["src/hl"]
 
 [tool.hatch.build.targets.sdist]
 # Public source distribution: private development files never enter the package.
+ignore-vcs = true
 only-include = [
     "src/hl",
     "scripts/bootstrap.py",
     "scripts/hl.py",
     "scripts/runtime.py",
+    "scripts/export_public.py",
     "pyproject.toml",
     "uv.lock",
-    ".gitignore",
     "README.md",
     "AGENTS.md",
     "CLAUDE.md",
@@ -54,6 +55,12 @@ only-include = [
     "data/foods/manifest.json",
 ]
 exclude = ["**/__pycache__/**", "**/*.pyc", "**/.DS_Store"]
+
+[tool.hatch.build.targets.sdist.force-include]
+"src/hl/data/distribution/gitignore.public" = ".gitignore"
+
+[tool.hatch.build.targets.sdist.hooks.custom]
+path = "scripts/export_public.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,3 +1,4 @@
+# Public-template defaults. Choose a private repository before tracking personal records.
 .venv/
 __pycache__/
 *.py[cod]
@@ -8,27 +9,25 @@ __pycache__/
 *.egg-info/
 .DS_Store
 
-# Private development material (already tracked private history stays private).
-/tests/
-/docs/aegis/
-/scripts/builtin_fixture.py
-/scripts/not_same.py
-
-# Public-template defaults: keep personal records and host settings out of source commits.
-# A private project may opt into tracking records; see docs/publication.md.
-# Git alone is never a complete backup: .hl contains required private state and keys.
-/.hl/
+# Personal ledger, preferences, signing keys and local runtime state.
 /hl.toml
 /log/
 /plan.yaml
 /defaults.yaml
 /foods/
+/.hl/
+/.private/
+/PERSONAL_RULES.md
+/HEALTH_LOG_V2.md
 .env
 .env.*
 /.claude/
 /.codex/
 
-# Complete upstream nutrition snapshots stay in the private development repository.
-# Private maintainers add these intentionally; public exports include only their index.
+# Tests, private review material and complete third-party nutrition snapshots.
+/tests/
+/docs/aegis/
+/scripts/builtin_fixture.py
+/scripts/not_same.py
 /data/foods/raw/
 /data/foods/compiled/

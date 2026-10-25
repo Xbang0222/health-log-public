@@ -1,0 +1,33 @@
+# Public-template defaults. Choose a private repository before tracking personal records.
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+/dist/
+/build/
+*.egg-info/
+.DS_Store
+
+# Personal ledger, preferences, signing keys and local runtime state.
+/hl.toml
+/log/
+/plan.yaml
+/defaults.yaml
+/foods/
+/.hl/
+/.private/
+/PERSONAL_RULES.md
+/HEALTH_LOG_V2.md
+.env
+.env.*
+/.claude/
+/.codex/
+
+# Tests, private review material and complete third-party nutrition snapshots.
+/tests/
+/docs/aegis/
+/scripts/builtin_fixture.py
+/scripts/not_same.py
+/data/foods/raw/
+/data/foods/compiled/

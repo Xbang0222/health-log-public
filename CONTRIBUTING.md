@@ -1,15 +1,17 @@
 # 参与开发
 
 先阅读[项目架构](docs/architecture.md)和[AI 接入指南](docs/agent-integration.md)。
-根目录 `AGENTS.md` 是日常使用入口，`HEALTH_LOG_V2.md` 是初始化生成的完整操作契约。
-用户明确要求开发时再使用本页的工程约定；不要把日常用户带入开发流程。
+根目录 `AGENTS.md` 按用户任务引导日常记录或开发，`HEALTH_LOG_V2.md` 是完整操作契约。
+私有仓库同时保存程序、食品数据、账本、个人规则和开发材料；无需另建一个日常项目。
+用户明确要求开发时使用本页的工程约定；不要把日常用户带入开发流程。
 
 ## 给开发 Agent 的边界
 
 - `intents` 是唯一日常写服务，`foods` 管营养，`ledgercheck/manifests` 管完整性。
   多文件写入走 `storage.transactions`，读写同锁，更正必须校验版本。
 - 正式个人账本只用于用户明确要求的使用或部署，不能拿它做工程测试。
-  所有回归使用隔离项目和合成数据；不修改全局 `hl`。
+  所有回归使用临时隔离账本和合成数据；不修改全局 `hl`。
+  正式账本就在本仓库根，测试不能直接调用默认指向本根的启动脚本写入。
 - 不启动 Docker Desktop，不打开桌面应用凑测试平台，不擅自改变远端可见性或上传个人数据。
 - 保留私有开发历史、原有证据和个人规则。私有治理文件不自动改写；当前用户需求优先于旧产品设计。
 - 新验证断言实际日期、餐次、数量、未改项目、估算与失败回滚，不只断言 `check` 成功。
@@ -53,6 +55,8 @@ python3 scripts/hl.py --help
 源代码包使用明确允许清单；wheel 只包含 `src/hl` 运行代码和资源。
 私有工程的完整食品数据位于 `data/foods/raw` 和 `compiled`，公开分发仅允许对应 README 和 manifest；
 数据处理与离线重建步骤见[项目数据说明](data/foods/README.md)。
-分别核对实际构建产物，不能只看 `.gitignore`，也不能沿用过去的旧包。
-公开源码快照必须来自审阅后的文件清单，不能包含私有 Git 历史。
+公开源码用 `python3 scripts/export_public.py /新的导出目录` 生成，再核对实际构建产物。
+根 `.gitignore` 用于私有项目；导出和源码包使用公共忽略规则，防止新用户误提交个人记录。
+通用 `AGENTS.md`、`CLAUDE.md`、`GEMINI.md` 与 README 可公开，个人偏好放在不导出的
+`PERSONAL_RULES.md`。不能只看 `.gitignore`、沿用旧包或直接复制私有 Git 历史。
 详细边界见[项目与发布说明](docs/publication.md)。

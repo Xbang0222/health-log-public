@@ -1,6 +1,6 @@
 # health-log
 
-配合 AI 使用的本地饮食与体重记录工具。用日常话记餐、补记、改错和查历史，程序和账本放在你自己的一个私有项目目录里。
+配合 AI 使用的本地饮食与体重记录工具。程序、食品数据和个人账本都在同一个私有项目中，可日常使用，也可开发改进。
 需要能读文件、执行命令的 AI 助手；目前没有独立网页或手机应用。
 
 [使用教程](docs/user-guide.md) · [安装说明](docs/portable-install.md) · [AI 接入](docs/agent-integration.md) · [项目数据](data/foods/README.md)
@@ -20,13 +20,15 @@
 
 ## 开始使用
 
-从 [公共模板](https://github.com/Xbang0222/health-log-public) 创建自己的**完整私有副本**，
-或下载到一个私人持久目录。让能读文件、执行命令的 AI 打开这一个目录，对它说：
+已有私有 `health-log` 项目，直接打开它，无需再建使用副本。
+新用户才从 [公共模板](https://github.com/Xbang0222/health-log-public) 创建一次私有项目，或下载到私人持久目录。
+让能读文件、执行命令的 AI 打开这个目录，对它说：
 
 > 请读根目录 AGENTS.md，准备这个项目的环境和食品库，然后帮我开始记录。
 
 AI 会在本项目内准备运行环境和账本。日常直接说吃了什么、什么时候、大概多少；
-不需要另选数据目录、先学命令或填写目标。细节见[使用教程](docs/user-guide.md)。
+不需要另选数据目录、先学命令或填写目标。要改进程序，也在这个项目里提出开发任务，
+AI 按根规则切换流程；测试只用临时合成数据。细节见[使用教程](docs/user-guide.md)。
 
 自行安装需要 Python 3.11 或以上，具体步骤和支持环境见[安装说明](docs/portable-install.md)。
 已有旧账本的用户先看[迁移与备份](docs/migration.md)；接入其他 AI 看[AI 接入指南](docs/agent-integration.md)。
