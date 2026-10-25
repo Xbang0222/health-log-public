@@ -17,4 +17,5 @@
   公开副本不含测试套件，不能把缺失测试称为通过。已有私有证据、规则和历史必须保留，不能覆盖清理。
   私有治理文件不因分发整理而改写；当前用户需求优先于历史产品设计。
 - 公开分发按 pyproject.toml 允许清单，不含测试、审查过程、个人账本、凭据或旧 Git 历史。
+  `data/foods/raw`、`data/foods/compiled` 是私有工程保存的第三方完整数据，公开只带其 README 和 manifest。
 - 日常用户 Agent 规则维护 `src/hl/data/templates/AGENTS.md`，不要把工程实现细节塞进用户反馈。

@@ -48,6 +48,8 @@ only-include = [
     "docs/agent-integration.md",
     "docs/architecture.md",
     "docs/publication.md",
+    "data/foods/README.md",
+    "data/foods/manifest.json",
 ]
 exclude = ["**/__pycache__/**", "**/*.pyc", "**/.DS_Store"]
 

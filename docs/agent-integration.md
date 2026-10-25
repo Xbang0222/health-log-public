@@ -7,7 +7,9 @@
 
 1. 确定程序目录和用户的持久账本目录；明确使用绝对路径，不把程序目录当个人账本。
 2. 按[安装说明](portable-install.md)准备依赖。已有账本先检查，格式 1 可继续查询；需要写入时按
-   [迁移说明](migration.md)完整备份后升级，不新建空账本替代。新账本用 `init`，食品缓存用 `foods fetch` 准备。
+   [迁移说明](migration.md)完整备份后升级，不新建空账本替代。新账本用 `init`；食品数据按安装说明
+   优先从程序目录的 `data/foods/raw/cn6`、`data/foods/raw/boohee` 分别执行 `foods build`，
+   没有完整本地快照时再用 `foods fetch`。已有有效食品库不因接手而重建。
 3. 读取账本 `HEALTH_LOG_V2.md`（存在时），否则读账本 `AGENTS.md`。保留原指南中仍适用的个人偏好。
    源码根目录的 `AGENTS.md` 是开发约定，不能替代账本规则。
 4. 调用 `doctor`、`check` 和 `recent`，知道环境、记录和未完成事项后才向用户说明状态。

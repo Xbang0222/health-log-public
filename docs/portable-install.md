@@ -11,8 +11,6 @@ Linux 和 WSL 是适用环境，当前维护记录没有实际 Linux/WSL 运行�
 ```sh
 python3 scripts/bootstrap.py
 python3 scripts/hl.py --data ~/health-data init
-python3 scripts/hl.py --data ~/health-data foods fetch
-python3 scripts/hl.py --data ~/health-data doctor
 ```
 
 第一条在源码内创建 `.venv`，只安装该项目依赖。后续入口自动选择它，不必激活环境、
@@ -37,6 +35,34 @@ python3 /完整路径/health-log/scripts/hl.py --data /持久路径/health-data 
 否则读取账本 `AGENTS.md`，再使用上述入口。详情见[AI 接入指南](agent-integration.md)。
 正常结构化写入不依赖 Codex/Claude hooks、宿主信任注册或全局配置；可选 hooks 用于
 采集宿主原话等增强能力，未启用时来源只能称为 Agent 提交。
+
+## 准备食品数据
+
+项目的概念、菜谱、量词和参考表在 `src/hl/data`。完整营养快照的条数、来源和校验清单见
+[项目数据](../data/foods/README.md)；完整第三方文件保留在私有工程，不随公开 MIT 源码分发。
+
+**程序目录带有 `data/foods/raw/cn6` 和 `data/foods/raw/boohee` 时**，直接从仓库数据离线构建：
+
+```sh
+python3 scripts/hl.py --data ~/health-data foods build data/foods/raw/cn6
+python3 scripts/hl.py --data ~/health-data foods build data/foods/raw/boohee
+python3 scripts/hl.py --data ~/health-data doctor
+python3 scripts/hl.py --data ~/health-data check
+```
+
+这会通过引擎现有转换器生成账本食品副本，保留未知值和来源，并写入校验值。
+不能把 `compiled/*.json` 当成原始数据交给 `foods build`，也不要绕过引擎直接修改账本配置或哈希。
+
+**公开源码没有完整快照时**，按已固定的来源和版本下载一次：
+
+```sh
+python3 scripts/hl.py --data ~/health-data foods fetch
+python3 scripts/hl.py --data ~/health-data doctor
+python3 scripts/hl.py --data ~/health-data check
+```
+
+下载或构建后，依赖和食品数据齐全的本地引擎可离线运行。已有账本已经装好食品库时先校验，
+不因程序升级重新构建或更换食品版本。云端 AI 对话仍需要对应服务的网络连接。
 
 ## 没有 Git、网络或食物缓存
 

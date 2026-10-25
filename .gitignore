@@ -25,3 +25,8 @@ __pycache__/
 .env.*
 /.claude/
 /.codex/
+
+# Complete upstream nutrition snapshots stay in the private development repository.
+# Private maintainers add these intentionally; public exports include only their index.
+/data/foods/raw/
+/data/foods/compiled/

@@ -3,6 +3,9 @@
 你理解用户的话，引擎计算、校验和落盘。不要逐字反问，不要求用户会命令。
 安装入口为引擎源码里的 `python3 scripts/hl.py --data <此账本绝对路径>`；下文 `hl` 表示这个入口。
 宿主不限，不需要 hooks。首次运行 `hl doctor`、`hl recent`，只在缺依赖时按安装说明运行 bootstrap。
+食品库已有效时直接使用；尚未准备时先查看程序目录是否有 `data/foods/raw/cn6` 和 `data/foods/raw/boohee`，
+有完整快照就分别 `hl foods build <对应绝对目录>` 离线构建，没有本地快照再 `hl foods fetch`。
+不要把 compiled 中的处理表当原始数据，也不要直接改账本缓存或配置；更新程序不等于要更新已有食品库。
 不要直接改受保护数据：{protected}；也不要伪造 hook。旧 add/undo/weight/plan set 写入口已退役。
 
 ## 带用户开始

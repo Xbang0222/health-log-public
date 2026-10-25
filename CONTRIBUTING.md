@@ -37,6 +37,8 @@ python3 scripts/hl.py --help
 ## 分发前
 
 源代码包使用明确允许清单；wheel 只包含 `src/hl` 运行代码和资源。
+私有工程的完整食品数据位于 `data/foods/raw` 和 `compiled`，公开分发仅允许对应 README 和 manifest；
+数据处理与离线重建步骤见[项目数据说明](data/foods/README.md)。
 分别核对实际构建产物，不能只看 `.gitignore`，也不能沿用过去的旧包。
 公开源码快照必须来自审阅后的文件清单，不能包含私有 Git 历史。
 详细边界见[项目与发布说明](docs/publication.md)。
