@@ -24,6 +24,63 @@ if [ -n "$hidden" ]; then
   fi
   exit 1
 fi
+# check 读取工作区；先保证本次暂存的账本正是将被检查的字节。
+# --no-renames 将重命名拆成删除和新增；删除后恢复为 untracked 也必须拒绝。
+if ! python3 - <<'PY'
+import os
+import stat
+import subprocess
+import sys
+
+protected = {protected_paths_json}
+
+def git(*args):
+    return subprocess.check_output(["git", "--literal-pathspecs", *args], stderr=subprocess.PIPE)
+
+def ledger(name):
+    path = os.fsdecode(name).casefold()
+    return any(path == p.rstrip("/") or p.endswith("/") and path.startswith(p)
+               for p in protected)
+
+try:
+    for name in git("ls-files", "-z").split(b"\0"):
+        if name and os.fsdecode(name).split("/", 1)[0].casefold() == ".hl":
+            raise ValueError("暂存区含私有 .hl 路径，不能提交：" + repr(os.fsdecode(name)))
+    changed = [p for p in git("diff", "--cached", "--name-only", "-z", "--no-renames").split(b"\0")
+               if p and ledger(p)]
+    if changed:
+        index = {}
+        for entry in git("ls-files", "--stage", "-z", "--", *changed).split(b"\0"):
+            if not entry:
+                continue
+            metadata, name = entry.split(b"\t", 1)
+            mode, blob, stage = metadata.split()
+            if stage != b"0" or mode not in (b"100644", b"100755"):
+                raise ValueError("暂存账本不是已解决冲突的普通文件：" + repr(os.fsdecode(name)))
+            index[name] = blob
+        for name in changed:
+            label = repr(os.fsdecode(name))
+            if name not in index:
+                if os.path.lexists(name):
+                    raise ValueError("暂存删除的账本仍存在于工作区：" + label)
+                continue
+            parent = os.path.dirname(name)
+            while parent:
+                if not stat.S_ISDIR(os.lstat(parent).st_mode):
+                    raise ValueError("账本父路径不是普通目录：" + label)
+                parent = os.path.dirname(parent)
+            if not stat.S_ISREG(os.lstat(name).st_mode):
+                raise ValueError("工作区账本不是普通文件：" + label)
+            if git("hash-object", "--no-filters", "--", name).strip() != index[name]:
+                raise ValueError("暂存账本与工作区内容不同：" + label)
+except (OSError, ValueError, subprocess.SubprocessError) as exc:
+    print("无法确认暂存账本与工作区一致：" + str(exc), file=sys.stderr)
+    sys.exit(1)
+PY
+then
+  printf '%s\n' "提交已取消。请让本次暂存的账本文件与工作区字节、存在状态一致，再重新提交。" >&2
+  exit 1
+fi
 # 本地程序存在时只运行它；缺依赖或检查失败不能改用另一套全局引擎。
 check_ledger() {
   if [ -e "$project_root/scripts/hl.py" ] || [ -L "$project_root/scripts/hl.py" ]; then

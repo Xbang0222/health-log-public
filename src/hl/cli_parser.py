@@ -27,6 +27,38 @@ DATE, SAID = "YYYY-MM-DD", "原话"
 
 DATE_HELP, SAID_HELP, JSON_HELP = "默认今天", "用户说的原话，照抄", "输入的 JSON 对象"
 
+RETIRED = {
+    ("add", None),
+    ("undo", None),
+    ("weight", None),
+    ("default", None),
+    ("food", "add"),
+    ("plan", "set"),
+    ("day", "set"),
+    ("manifest", "rebuild"),
+}
+RETIRED_HINT = (
+    "旧写入口已退役；日常写入使用 intent --json 的结构化契约，读取 HEALTH_LOG_V2.md"
+    "（缺少时读取 AGENTS.md）。完整性损坏按 check 的当前诊断恢复，不重建或重签来绕过校验。"
+)
+
+
+def retired_route(argv: list[str]) -> bool:
+    """识别旧入口，只用于给出兼容拒绝；不读取账本或解析旧写入协议。"""
+    words = list(argv)
+    while words:
+        if words[0] == "--data":
+            words = words[2:]
+        elif words[0].startswith("--data="):
+            words = words[1:]
+        else:
+            break
+    return bool(words) and ((words[0], None) in RETIRED or (tuple(words[:2]) in RETIRED))
+
+
+def _retired(commands: Any, name: str) -> None:
+    commands.add_parser(name, help="已退役；请用 intent", description=RETIRED_HINT)
+
 
 class _Usage(Exception):
     """命令行写错了。"""
@@ -97,7 +129,12 @@ def _parser() -> _Parser:
     commands = parser.add_subparsers(dest="command", required=True, metavar="命令")
 
     one = commands.add_parser("init", help="生成数据目录，可重复执行")
-    one.add_argument("dir", nargs="?", metavar="目录", help="不给就用 HL_DATA 或 ~/health-data")
+    one.add_argument(
+        "dir",
+        nargs="?",
+        metavar="目录",
+        help="源码脚本默认本项目；裸安装 hl 默认 HL_DATA 或 ~/health-data",
+    )
     one.add_argument("--hooks", action="store_true", help="额外安装可选宿主 hooks")
 
     one = commands.add_parser("intent", help="提交结构化意图（唯一日常写入口）")
@@ -128,8 +165,7 @@ def _parser() -> _Parser:
     foods.add_parser("fetch", help="下载固定版本的成分表和薄荷库，核对校验值后整理成本地副本")
 
     library = _group(commands, "food", "用户库（自己登记的食物、存下的估算），在库里找条目")
-    one = library.add_parser("add", help="登记一样食物：包装标签、整份的营养或拆成原料的估算")
-    one.add_argument("--json", dest="payload", required=True, metavar="JSON", help=JSON_HELP)
+    _retired(library, "add")
     library.add_parser("list", help="列出用户库里的条目")
     search_help = "在用户库、常用食物和菜谱、成分表、薄荷库里找条目（只读）"
     one = library.add_parser("search", help=search_help)
@@ -142,8 +178,7 @@ def _parser() -> _Parser:
         one = hooks.add_parser(name, help=text)
         one.add_argument("--agent", default="unknown", help="Agent 名称")
 
-    one = commands.add_parser("add", help="记一餐")
-    one.add_argument("--json", dest="payload", required=True, metavar="JSON", help=JSON_HELP)
+    _retired(commands, "add")
 
     one = commands.add_parser("today", help="今日已吃、目标、还差多少、可以吃什么")
     one.add_argument("--date", metavar=DATE, help=DATE_HELP)
@@ -153,50 +188,16 @@ def _parser() -> _Parser:
     one.add_argument("--from", dest="start", metavar=DATE, help="从哪天起；和 --days 二选一")
     one.add_argument("--to", dest="end", metavar=DATE, help="到哪天为止，默认今天")
 
-    one = commands.add_parser("undo", help="删除一条记录，或确认删除原话指定的最后多条")
-    one.add_argument("--said", required=True, metavar=SAID, help=SAID_HELP)
-    targets = one.add_mutually_exclusive_group()
-    targets.add_argument("--id", metavar="ID", help="记录 id；不给就按原话选择当天最后记录")
-    targets.add_argument("--ids", metavar="ID列表", help="只照抄引擎批量确认返回的固定ID列表")
-    one.add_argument("--date", metavar=DATE, help=DATE_HELP)
-    one.add_argument("--confirm", action="store_true", help="用户已确认")
-    one.add_argument("--answer", metavar=SAID, help="用户确认时回答的原话")
-
-    one = commands.add_parser("weight", help="记体重")
-    one.add_argument("--said", required=True, metavar=SAID, help=SAID_HELP)
-    kg_help = "原话里有几个像体重的数时，照抄用户的体重是哪个；引擎会先请用户确认"
-    one.add_argument("--kg", type=float, metavar="数字", help=kg_help)
-    one.add_argument("--date", metavar=DATE, help=DATE_HELP)
-    one.add_argument("--confirm", action="store_true", help="用户已确认")
-    one.add_argument("--answer", metavar=SAID, help="用户确认时回答的原话")
-
-    plans = _group(commands, "plan", "计划")
-    one = plans.add_parser("set", help="设定计划")
-    one.add_argument("--json", dest="payload", required=True, metavar="JSON", help=JSON_HELP)
+    for name in ("undo", "weight", "default"):
+        _retired(commands, name)
+    plans = _group(commands, "plan", "查看计划；旧 set 已退役")
+    _retired(plans, "set")
     one = plans.add_parser("show", help="查看计划")
     one.add_argument("--date", metavar=DATE, help=DATE_HELP)
-
-    days = _group(commands, "day", "当天类型")
-    one = days.add_parser("set", help="指定某天按哪种日子算")
-    one.add_argument("type", metavar="类型", help="日子类型的名称")
-    one.add_argument("--said", required=True, metavar=SAID, help=SAID_HELP)
-    one.add_argument("--date", metavar=DATE, help=DATE_HELP)
-    one.add_argument("--confirm", action="store_true", help="用户已确认")
-    one.add_argument("--answer", metavar=SAID, help="用户确认时回答的原话")
-
-    one = commands.add_parser("default", help="设定或去掉默认品种")
-    one.add_argument("concept", metavar="概念", help="例如 牛奶")
-    one.add_argument("variant", metavar="品种", nargs="?", help="例如 全脂；--clear 时不填")
-    one.add_argument("--clear", action="store_true", help="去掉这种食物的默认品种")
-    one.add_argument("--said", required=True, metavar=SAID, help=SAID_HELP)
-    one.add_argument("--confirm", action="store_true", help="用户已确认")
-    one.add_argument("--answer", metavar=SAID, help="用户确认时回答的原话")
-
-    manifests = _group(commands, "manifest", "清单")
-    one = manifests.add_parser("rebuild", help="按现有的已签名记录重建清单；引擎会先请用户确认")
-    one.add_argument("--said", required=True, metavar=SAID, help=SAID_HELP)
-    one.add_argument("--confirm", action="store_true", help="用户已确认")
-    one.add_argument("--answer", metavar=SAID, help="用户确认时回答的原话")
+    days = _group(commands, "day", "已退役；请用 intent")
+    _retired(days, "set")
+    manifests = _group(commands, "manifest", "已退役；按 check 诊断恢复")
+    _retired(manifests, "rebuild")
 
     one = commands.add_parser("ref", help="参考范围表：只供查看，不写进计划")
     kg_help = "用户自己说的体重（公斤）；按体重给的范围顺带换算成克"

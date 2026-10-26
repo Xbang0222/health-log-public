@@ -41,15 +41,13 @@ EDGE = "的了吃喝"
 ANY_UNIT = language_quantities.with_generic_units(["g", "ml", *language_units.COUNTERS])
 
 FIX_BROKEN = (
-    "用户库 foods/custom.yaml 只能由 hl 写入。告诉用户这一条被直接改过、不能用；"
-    "数据目录是 git 仓库的，可以用 git 恢复这个文件；不然请用户重新说一下它的营养或做法，"
-    "用 hl food add 重新登记（会覆盖这一条）"
+    "用户库 foods/custom.yaml 的结构或签名损坏，不能用普通 intent 覆盖或重新签名。"
+    "先保留当前完整项目；从备份取回与当前操作历史对应的原文件，恢复后运行 check。"
+    "无法核对原文件时，从同一时间点的完整备份恢复项目（包含隐藏 .hl、原密钥和历史）；"
+    "没有可用备份就停止写入，将问题交给维护者诊断。"
 )
 
-FIX_RESTORE = (
-    "用户库只能由 hl 写入。数据目录是 git 仓库的，用 git checkout HEAD -- foods/custom.yaml 取回"
-    "上次写对的样子；不然把这一条告诉用户，请用户重新说一下它的营养或做法，用 hl food add 重新登记"
-)
+FIX_RESTORE = FIX_BROKEN
 
 FIX_TAKEN = "名字前面加上品牌或口味（例如“全家{name}”“香辣{name}”），和常用食物表里的叫法区分开"
 

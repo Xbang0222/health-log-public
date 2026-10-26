@@ -18,6 +18,7 @@ from hl.cli_parser import DATE_HELP as DATE_HELP
 from hl.cli_parser import HOOKS as HOOKS
 from hl.cli_parser import JSON_HELP as JSON_HELP
 from hl.cli_parser import MESSAGES as MESSAGES
+from hl.cli_parser import RETIRED, RETIRED_HINT, retired_route
 from hl.cli_parser import SAID as SAID
 from hl.cli_parser import SAID_HELP as SAID_HELP
 from hl.cli_parser import _Exit as _Exit
@@ -55,13 +56,13 @@ from hl.storage import transactions
 Handler = Callable[[Context, argparse.Namespace], Result]
 
 
-def retired(ctx, args):
+def retired(ctx=None, args=None):
     return rejected(
         [
             problem(
                 "command",
                 "旧原话裁决写入口已退役",
-                "使用 intent --json 的结构化契约；读取账本 AGENTS.md。不要重新询问已知事实",
+                RETIRED_HINT,
             )
         ]
     )
@@ -75,21 +76,14 @@ HANDLERS: dict[tuple[str, str | None], Handler] = {
     ("migrate", None): migration.run,
     ("foods", "build"): foods_build.run,
     ("foods", "fetch"): foods_fetch.run,
-    ("food", "add"): retired,
     ("food", "list"): food.list_foods,
     ("food", "search"): food_search.run,
-    ("add", None): retired,
     ("today", None): today.run,
     ("report", None): report.run,
-    ("undo", None): retired,
-    ("weight", None): retired,
-    ("plan", "set"): retired,
     ("plan", "show"): plan.show_plan,
-    ("day", "set"): retired,
-    ("default", None): retired,
-    ("manifest", "rebuild"): retired,
     ("check", None): check.run,
     ("doctor", None): doctor.run,
+    **dict.fromkeys(RETIRED, retired),
 }
 
 # 会写数据目录的命令：git 操作做到一半时一律拒绝（规则 19）。hl init 另外查
@@ -98,29 +92,7 @@ WRITES = {
     ("migrate", None),
     ("foods", "build"),
     ("foods", "fetch"),
-    ("food", "add"),
-    ("add", None),
-    ("undo", None),
-    ("weight", None),
-    ("plan", "set"),
-    ("day", "set"),
-    ("default", None),
-    ("manifest", "rebuild"),
 }
-
-FIX_JSON_CONFIRM = (
-    "这条命令没有 --confirm、--answer：带确认写在 --json 的 JSON 里，"
-    '加上 "confirm": true，把用户回答的原话追加到 answers 数组的末尾，JSON 里别的不变，再调用一次'
-)
-
-
-def _confirms_by_flag(argv: list[str]) -> bool:
-    """hl add、hl plan set、hl food add 照别的命令加了 --confirm、--answer：它们带确认写在
-    JSON 里（R19）。"""
-    words = [arg for arg in argv if not arg.startswith("-")]
-    if words[:1] != ["add"] and words[:2] not in (["plan", "set"], ["food", "add"]):
-        return False
-    return any(arg in ("--confirm", "--answer") or arg.startswith("--answer=") for arg in argv)
 
 
 def _utf8(stream: Any) -> None:
@@ -199,6 +171,8 @@ def _execute(args: argparse.Namespace) -> Result:
         return ref.run(args)
     command = (args.command, getattr(args, "action", None))
     handler = HANDLERS[command]
+    if command in RETIRED:
+        return retired()
     ctx = configuration_read.load(environ, Path.cwd())
     if command in WRITES and not ctx.no_git:
         refused = storage_git_state.refuse_unfinished(
@@ -250,7 +224,9 @@ def main(argv: list[str]) -> int:
     except _Exit as stop:
         return stop.code
     except _Usage as wrong:
-        fix = FIX_JSON_CONFIRM if _confirms_by_flag(argv) else f"按这个用法重写命令：{wrong.usage}"
+        if retired_route(argv):
+            return _emit(retired())
+        fix = f"按这个用法重写命令：{wrong.usage}"
         return _emit(rejected([problem("命令行", f"命令行参数不对：{wrong}", fix)]))
     try:
         result = _execute(args)

@@ -9,7 +9,7 @@ from hl.foods import concepts, custom, table_io
 from hl.foods import table_types as ft
 from hl.intents.catalog import load_table, values
 from hl.intents.contract import fail
-from hl.intents.selection import select
+from hl.intents.selection import select, validate_custom_state
 from hl.language import units
 from hl.ledgercheck.defaults import load_defaults
 from hl.result import Abort, needs_estimate, needs_input, question
@@ -108,6 +108,7 @@ class Calculator:
         if code and ft.split(code)[0] == ft.CUSTOM and (not saved or not saved.food):
             fail("food", "指定的用户库食品不存在或没有营养", "food search 查询实际用户库编码")
         if saved and saved.food:
+            validate_custom_state(item)
             if n is None:
                 return []
             factor = saved.factor(n, unit)

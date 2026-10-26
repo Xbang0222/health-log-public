@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 from datetime import timedelta
 from typing import Any
 
+from hl import templates
 from hl.agent_config import _check, _claude, _codex
 from hl.configuration.values import Context
 from hl.foods import table
@@ -33,7 +35,15 @@ def _table(ctx: Context) -> dict[str, Any]:
     try:
         count = len(table.load(ctx.data_dir, ctx.foods_sha))
     except table.TableError as exc:
-        return _check("成分表副本", False, f"{exc}；{table.fix(exc, ctx.data_dir)}")
+        if not ctx.foods_sha and exc.kind == "missing":
+            detail = (
+                "尚未安装成分表：先检查本项目 data/foods/raw/cn6 和 data/foods/raw/boohee；"
+                "有完整原始快照时分别用 hl foods build 加对应目录离线构建，"
+                "没有本地完整快照再运行 hl foods fetch。不要把 compiled 当原始数据"
+            )
+        else:
+            detail = f"{exc}；{table.fix(exc, ctx.data_dir)}"
+        return _check("成分表副本", False, detail)
     return _check("成分表副本", True, f"在位，共 {count} 条，哈希与 hl.toml 一致")
 
 
@@ -44,7 +54,11 @@ def _boohee(ctx: Context) -> dict[str, Any]:
         count = len(table.load_boohee(ctx.data_dir, ctx.boohee_sha))
     except table.TableError as exc:
         if exc.kind == "absent":
-            detail = f"没装：名字对得上薄荷库的食物也走估算，不影响记账；{table.FIX_BOOHEE_FETCH}"
+            detail = (
+                "没装：名字对得上薄荷库的食物也走估算，不影响记账；"
+                "先检查本项目 data/foods/raw/boohee，有完整快照就用 hl foods build 加该目录，"
+                f"没有本地完整快照再下载：{table.FIX_BOOHEE_FETCH}"
+            )
             return _check(name, False, detail)
         return _check(name, False, table.boohee_note(exc, ctx.data_dir))
     return _check(name, True, f"在位，共 {count} 条，哈希与 hl.toml 一致")
@@ -87,6 +101,38 @@ def _inbox(ctx: Context) -> dict[str, Any]:
     return _check(name, age <= RECENT, detail)
 
 
+def _precommit(ctx: Context) -> str | None:
+    """只认可当前规范模板；不执行或覆盖用户钩子，也不把路径配置当成功证明。"""
+    configured = storage_git_hooks.hooks_path(ctx.data_dir)
+    if configured != ".githooks":
+        if configured:
+            return (
+                f"core.hooksPath 指向自定义路径 {configured}，无法确认提交前校验；"
+                "保留自定义配置，按 docs/agent-integration.md 单独适配并验证"
+            )
+        return (
+            "尚未配置规范提交钩子，无法确认提交前校验；先保留并核对现有钩子，"
+            "只有选择启用且安装好规范模板后，才" + storage_git_hooks.hooks_fix(ctx.data_dir)
+        )
+    hook = ctx.data_dir / ".githooks/pre-commit"
+    if hook.parent.is_symlink() or hook.is_symlink():
+        return ".githooks/pre-commit 路径含符号链接，无法静态确认规范钩子；保留并核对自定义配置"
+    if not hook.is_file():
+        return ".githooks/pre-commit 不存在或不是普通文件，提交前校验未接好"
+    if not os.access(hook, os.X_OK):
+        return ".githooks/pre-commit 不可执行，Git 不会运行它；核对内容后再设置执行权限"
+    try:
+        actual = hook.read_bytes()
+    except OSError:
+        return ".githooks/pre-commit 无法读取，不能确认提交前校验"
+    if actual != templates.template(".githooks/pre-commit").encode("utf-8"):
+        return (
+            ".githooks/pre-commit 与当前规范模板不同，无法确认提交前校验；"
+            "保留自定义钩子，按 docs/agent-integration.md 单独适配并验证，不直接覆盖"
+        )
+    return None
+
+
 def _git(ctx: Context) -> dict[str, Any]:
     name = "git 自动提交"
     if ctx.no_git:
@@ -112,9 +158,9 @@ def _git(ctx: Context) -> dict[str, Any]:
     doing = storage_git_state.unfinished_problem(ctx.data_dir)
     if doing:
         problems.append(doing)
-    if storage_git_hooks.hooks_path(ctx.data_dir) != ".githooks":
-        detail = "core.hooksPath 没有指向 .githooks，提交前不会跑 hl check"
-        problems.append(f"{detail}；{storage_git_hooks.hooks_fix(ctx.data_dir)}")
+    hook_problem = _precommit(ctx)
+    if hook_problem:
+        problems.append(hook_problem)
     problems += storage_git_tracking.commit_blockers(ctx.data_dir, ctx.today)
     left = storage_git_tracking.untracked_ledger(ctx.data_dir)
     if left:
@@ -122,7 +168,13 @@ def _git(ctx: Context) -> dict[str, Any]:
     signing = [storage_git_messages.SIGNING] if storage_git_state.signing(ctx.data_dir) else []
     if problems:
         return _check(name, False, "；".join(problems + signing))
-    return _check(name, True, "；".join(["仓库在位，提交前会跑 hl check", *signing]))
+    return _check(
+        name,
+        True,
+        "；".join(
+            ["仓库与可执行规范钩子在位，提交前会运行 check（静态核对，未试运行提交）", *signing]
+        ),
+    )
 
 
 def _hidden(ctx: Context) -> dict[str, Any]:

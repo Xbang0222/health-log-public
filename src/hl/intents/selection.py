@@ -5,15 +5,17 @@ from hl.foods import table_types as ft
 from hl.intents.contract import fail
 
 
+def validate_custom_state(item):
+    if "state" in item:
+        fail("state", "用户库食品没有生熟换算规则", "核对标签对应称重口径，不要静默忽略生熟状态")
+
+
 def select(index, item):
     hit = concepts.lookup(index, item["name"])
     concept, variant = hit if hit else (None, None)
     code = ft.ref(item["food"]) if item.get("food") else None
     if code and ft.split(code)[0] == ft.CUSTOM:
-        if "state" in item:
-            fail(
-                "state", "用户库编码没有生熟换算规则", "核对标签对应称重口径，不要静默忽略生熟状态"
-            )
+        validate_custom_state(item)
         return None, None, code
     if code:
         candidates = [

@@ -142,12 +142,26 @@ def fail(
     raise Abort(rejected([problem(where, message, fix)]))
 
 
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject conflicting fields before JSON decoding silently chooses the last value."""
+    data: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in data:
+            fail("JSON", f"字段 {key!r} 重复", "同一对象内每个字段只能出现一次；自行修正工具参数")
+        data[key] = value
+    return data
+
+
 def parse(raw: str) -> dict[str, Any]:
     try:
-        data = json.loads(raw)
+        data = json.loads(raw, object_pairs_hook=_unique_object)
     except ValueError:
         fail("JSON", "不是合法 JSON")
-    if not isinstance(data, dict) or data.get("action") not in ACTIONS:
+    if (
+        not isinstance(data, dict)
+        or not isinstance(data.get("action"), str)
+        or data["action"] not in ACTIONS
+    ):
         fail("action", f"支持的操作：{', '.join(ACTIONS)}")
     props, required = ACTIONS[data["action"]]
     contract = obj({**BASE, **props}, ("request_id", "action", "said", *required))

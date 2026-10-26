@@ -76,6 +76,14 @@ def run(ctx, args) -> Result:
             from hl.intents.receipts import replay
 
             return replay(ctx, key, payload, receipt)
+        draft = value["drafts"].get(request_id)
+        if draft and draft["payload"]["action"] != payload["action"]:
+            contract.fail(
+                "request_id",
+                "这个编号属于尚未完成的其他操作，不能改变操作类型",
+                "继续原操作时保留 action；取消用新的请求编号和 cancel_request_id，"
+                "新的操作另用新编号",
+            )
         origin = state.origin(ctx, payload)
         source_time = datetime.fromisoformat(origin["at"])
         if source_time > ctx.now + timedelta(minutes=5):

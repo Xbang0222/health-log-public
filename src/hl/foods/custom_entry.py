@@ -18,6 +18,19 @@ LABEL = "包装标签"
 DISH_UNITS = ("份", "盘", "碗")
 
 
+def _canonical(unit: str) -> str:
+    return next((name for name, forms in language_units.UNIT_FORMS.items() if unit in forms), unit)
+
+
+def _dimension_amount(n: float, unit: str) -> tuple[str, Decimal] | None:
+    """Read old {n, unit} portions in base units without rewriting signed history."""
+    unit = _canonical(unit)
+    for dimension, scale in (("g", language_units.GRAMS), ("ml", language_units.MILLILITRES)):
+        if unit in scale:
+            return dimension, Decimal(str(n)) * Decimal(str(scale[unit]))
+    return None
+
+
 # ---------- 一条 ----------
 @dataclass(frozen=True)
 class Entry:
@@ -99,7 +112,16 @@ class Entry:
 
         先看 per 的量词本身，再按克数折（通用重量单位、量词补充），最后看菜的“份、盘、碗”通用。
         """
+        unit = _canonical(unit)
         per = self.per
+        if "unit" in per:
+            stored = _dimension_amount(per["n"], per["unit"])
+            requested = _dimension_amount(n, unit)
+            if stored is not None and requested is not None:
+                if stored[0] != requested[0]:
+                    return None  # Volume and mass need density; never infer it from the unit.
+                grams = requested[1] if requested[0] == "g" else None
+                return requested[1] / stored[1], grams, False
         if "unit" in per and unit == per["unit"]:
             weight = self.grams(n, unit)
             return Decimal(str(n)) / Decimal(str(per["n"])), weight[0] if weight else None, False

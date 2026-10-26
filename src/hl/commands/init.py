@@ -106,6 +106,12 @@ def run(
             storage_io.write_text(secret_path, secrets.token_hex(32) + "\n", 0o600)
             created.append(storage_keys.SECRET)
         key = storage_keys.secret(data_dir)
+        root = resources.files("hl").joinpath("data", "templates")
+        sources = [
+            (relative, source)
+            for relative, source in templates.walk(root)
+            if hooks or not relative.startswith((".claude/", ".codex/", ".githooks/"))
+        ]
         with transactions.transaction(
             data_dir,
             key,
@@ -117,12 +123,10 @@ def run(
                 "AGENTS.md",
                 "CLAUDE.md",
                 "HEALTH_LOG_V2.md",
+                *(relative for relative, _ in sources),
             ],
         ):
-            root = resources.files("hl").joinpath("data", "templates")
-            for relative, source in templates.walk(root):
-                if not hooks and relative.startswith((".claude/", ".codex/", ".githooks/")):
-                    continue
+            for relative, source in sources:
                 destination = data_dir / relative
                 if destination.exists():
                     continue
@@ -155,9 +159,9 @@ def run(
                     )
         warnings = []
         changed = False
-        if hooks and environ.get("HL_NO_GIT") != "1":
-            # 自动提交只提交引擎这次写的文件：生成的模板也由这里提交，不留给之后哪一次写入
-            warnings, changed = storage_git_hooks.git_init(data_dir)
+        if environ.get("HL_NO_GIT") != "1":
+            if hooks:
+                warnings, changed = storage_git_hooks.git_init(data_dir)
             if storage_git_state.is_repo(
                 data_dir
             ):  # .hl/ 不进 git：用户自己的 .gitignore 没写，也要忽略它
@@ -165,17 +169,21 @@ def run(
                 warnings += kept
                 changed = changed or wrote
                 # .gitignore 忽略了账本文件、log/ 下有符号链接：以后的写入提交不上，当场说
-                warnings += storage_git_tracking.commit_blockers(data_dir, _today(environ))
+                if hooks:
+                    warnings += storage_git_tracking.commit_blockers(data_dir, _today(environ))
             # 外层仓库会把数据目录下的文件提交进去时，.hl/ 也要它自己忽略（规则 20）
             kept, wrote = storage_git_outer.keep_out_outer(data_dir)
             warnings += kept
             changed = changed or wrote
             # 仓库没建成，autocommit 自己会跳过；git_init 的提醒也可能只是说钩子的事，照常提交
-            enabled = settings.get("git", {}).get("autocommit", True) is True
-            warnings += storage_git_commit.autocommit(data_dir, enabled, "hl init")
+            if hooks:
+                enabled = settings.get("git", {}).get("autocommit", True) is True
+                warnings += storage_git_commit.autocommit(data_dir, enabled, "hl init")
     done = f"新建了 {len(created)} 个文件" if created else "文件都已存在，没有改动"
     if changed and not created:  # 文件没动，git 的设置补上了（建了仓库、设了钩子、写了 exclude）
-        done = "文件都已存在，补上了 git 的设置"
+        done = (
+            "文件都已存在，补上了 git 的设置" if hooks else "文件都已存在，补上了私有文件忽略保护"
+        )
     steps = "下一步：运行 hl doctor 自检"
     if not table.path(data_dir).exists():
         steps = (

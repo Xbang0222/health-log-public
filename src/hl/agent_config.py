@@ -25,7 +25,7 @@ REGENERATE = (
 CODEX_TRUST = (
     "Codex 还要信任这个项目、在 Codex 里输入 /hooks 审过并信任这两个钩子才会运行它们"
     "（hooks.json 改过要重新审），这两步引擎查不到：在 Codex 里说一句话，"
-    "再运行 hl doctor，“钩子在工作”那一项里有 codex 的消息才算好了"
+    "再运行 hl doctor；收件箱出现 codex 消息只能证明采集钩子运行过，直接写保护仍需单独验证"
 )
 
 

@@ -26,6 +26,7 @@ def finish(ctx, key, value, payload):
             "fingerprint": state.digest(frozen),
             "result": copy.deepcopy(result.fields),
         }
+        value["drafts"].pop(frozen["request_id"], None)
         del value["pending"][token]
         return result
     if not token and not request:

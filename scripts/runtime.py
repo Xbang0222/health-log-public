@@ -64,13 +64,25 @@ def venv_usable(root: Path = ROOT) -> tuple[bool, str]:
         return False, f"本地解释器不可用：{python}；从其他电脑复制来的 .venv 不能直接迁移"
     if not (root / ".venv/pyvenv.cfg").is_file():
         return False, "本地 .venv 缺少 pyvenv.cfg；请移走残缺环境后重新运行 bootstrap.py"
-    source = (
-        "import os,sys; "
-        "assert sys.version_info >= (3,11), '需要 Python 3.11 或更新版本'; "
-        "assert sys.prefix != sys.base_prefix and "
-        "os.path.realpath(sys.prefix) == os.path.realpath(sys.argv[1]), "
-        "'解释器没有使用本项目的 .venv'"
-    )
+    source = """
+import sys
+import sysconfig
+from pathlib import Path
+assert sys.version_info >= (3, 11), '需要 Python 3.11 或更新版本'
+root = Path(sys.argv[1]).resolve()
+assert sys.prefix != sys.base_prefix and Path(sys.prefix).resolve() == root, \\
+    '解释器没有使用本项目的 .venv'
+destinations = {name: Path(sysconfig.get_path(name))
+                for name in ('purelib', 'platlib', 'scripts', 'data')}
+# Pip installs wheel headers here in a venv. sysconfig's include/platinclude
+# describe the base interpreter's development headers and may correctly be external.
+python_xy = f'python{sys.version_info.major}.{sys.version_info.minor}'
+destinations['headers'] = root / 'include' / 'site' / python_xy
+for name, path in destinations.items():
+    destination = path.resolve()
+    if not destination.is_relative_to(root):
+        raise RuntimeError(f'{name} 安装目录在本项目 .venv 之外：{destination}')
+"""
     try:
         result = subprocess.run(
             [str(python), "-I", "-c", source, str(root / ".venv")],

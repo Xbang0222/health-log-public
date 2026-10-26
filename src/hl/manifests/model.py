@@ -15,27 +15,18 @@ FILE = "manifest.json"
 WHERE = f"{storage_io.HIDDEN}/{FILE}"
 
 
-REBUILD = "hl manifest rebuild --said '<用户的原话>'"
-
-
-ASK_FIRST = "引擎会列出重建后会少什么、会改什么、会认下什么，先请用户确认"
-
-
-FIX_LOST = (
-    "清单由引擎维护，不能直接读写，也不能手工补，git 里也没有它。把这个问题原样告诉用户，"
-    f"再运行 {REBUILD}：引擎会先请用户确认，再按现有的、签名有效的记录重建"
+RESTORE_BACKUP = (
+    "先保留当前完整项目，再从同一时间点的完整备份恢复，包含隐藏 .hl、原密钥、清单和操作历史。"
+    "不要删文件、重签或用普通 intent 采纳损坏状态。恢复后按当前项目入口运行 check；"
+    "没有可用备份就停止写入，将问题交给维护者诊断。"
 )
 
+# Compatibility exports for the former facade; neither offers the retired rebuild command.
+REBUILD = RESTORE_BACKUP
+ASK_FIRST = "恢复会替换当前数据，先备份现状并请用户选择要恢复的完整备份"
 
-# 同时还有读不了的、整份读不进来的、名字不规范的：它们没处理好之前重建会漏掉它们，引擎也会拒绝
-# （hl check 用）。那几条有的叫模型用 git 取回，有的请用户处理：清单这一条只叫先别重建
-FIX_LOST_LATER = (
-    "清单由引擎维护，不能直接读写，也不能手工补，git 里也没有它。这次还有读不了的、整份读不进来的"
-    "文件或文件夹、名字不规范的文件（看其他几条）：重建清单只数读得出来、名字认得出是哪一天的，"
-    "现在重建会漏掉它们，引擎也会拒绝。把这个问题原样告诉用户；清单这一条先停下，现在不要运行 "
-    "hl manifest rebuild：先照其他几条的 fix 办（要用户处理的，等用户处理好），再运行 hl check，"
-    "只剩清单这一条时，照它的 fix 重建"
-)
+FIX_LOST = "清单由引擎维护，不能手工补，Git 也不保存它。" + RESTORE_BACKUP
+FIX_LOST_LATER = "清单和其他文件同时有问题，不能依据残缺内容重新建立信任。" + FIX_LOST
 
 
 NEXT_DATA = (
@@ -63,14 +54,14 @@ LAST_WINS = "同一天起的几版，排在后面的那一版生效"
 PARTS = (("weight", "体重"), ("day_type", "当天类型"))
 
 
-REDO_PART = {"weight": "hl weight", "day_type": "hl day set"}
+REDO_PART = {"weight": "intent action=weight", "day_type": "intent action=day"}
 
 
 Changes = tuple[list[str], list[str], list[str]]  # 重建会少的、会改的、会认下的
 
 
 def fix_gone(where: str, git: bool, why: str = WHY_GONE) -> str:
-    """清单里记着、文件里没有了（或换成了别的）的改法：先用 git 取回，取不回再问用户要不要重建。
+    """Only suggest a checked Git version; otherwise preserve the complete signed state.
 
     git 为假：最近一次提交里的那一份也缺东西（或者根本没有），不给 git 这条路（audit._restorable）。
     """
@@ -78,13 +69,9 @@ def fix_gone(where: str, git: bool, why: str = WHY_GONE) -> str:
     if git:
         return (
             f"{why}用 git 恢复这个文件（git checkout HEAD -- {where}），"
-            "做完再运行 hl check；恢复之后还是这样，或者确实是用户自己删的、改的："
-            f"把问题告诉用户，运行 {REBUILD}，{ASK_FIRST}"
+            "做完再运行 hl check；仍不一致时，" + RESTORE_BACKUP
         )
-    return (
-        f"{why}git 里没有能取回的完整版本。把问题告诉用户，问是不是他自己删的、改的："
-        f"是，运行 {REBUILD}，{ASK_FIRST}；不是，就此停下，不要自己改文件"
-    )
+    return f"{why}git 里没有能取回的完整版本。" + RESTORE_BACKUP
 
 
 def word(text: str) -> str:
@@ -94,20 +81,15 @@ def word(text: str) -> str:
 
 
 def fix_extra_entry(day: str, entry_id: str) -> str:
-    """文件里有、清单里没有的一条记录：问用户要不要，不要就撤掉，要就重建清单。"""
-    option = f"--id={word(entry_id)}" if entry_id.startswith("-") else f"--id {word(entry_id)}"
+    """An unlisted signed record is still inconsistent with the accepted ledger state."""
     return (
-        "把这个问题告诉用户，问他这条记录还要不要。"
-        f"用户不要了：运行 hl undo {option} --date {day} --said '<用户的原话>'；"
-        f"用户要留着：运行 {REBUILD}。两样引擎都会先请用户确认"
+        f"{day} 的记录 {entry_id} 未被当前清单接纳；不能直接删除或重新签名掩盖不一致。"
+        + RESTORE_BACKUP
     )
 
 
 def _fix_extra_part(name: str, label: str) -> str:
-    return (
-        f"把这个问题告诉用户。这个{label}要先认下来才能再改：运行 {REBUILD}，{ASK_FIRST}；"
-        f"用户要改，重建之后再用 {REDO_PART[name]} 重新记"
-    )
+    return f"这个{label}与当前清单不一致，不能先采纳再修改。" + RESTORE_BACKUP
 
 
 def _signed_plans(key: bytes, plans: Any) -> list[dict[str, Any]]:

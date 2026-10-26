@@ -36,6 +36,11 @@ COMMON_PATHS = (
     "AGENTS.md",
     "CLAUDE.md",
     "HEALTH_LOG_V2.md",
+    ".gitignore",
+    ".claude/settings.json",
+    ".codex/config.toml",
+    ".codex/hooks.json",
+    ".githooks/pre-commit",
 )
 _active = threading.local()
 
